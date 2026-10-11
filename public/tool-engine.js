@@ -17,6 +17,56 @@ function clearField(id) {
   if (el) el.value = '';
 }
 
+function convertProgress(prefix) {
+  const box=document.getElementById(prefix+'Progress'),fill=document.getElementById(prefix+'ProgressFill'),text=document.getElementById(prefix+'ProgressText'),track=box?.querySelector('.convert-progress-track');
+  return {
+    show(){box.hidden=false;},
+    hide(){box.hidden=true;},
+    set(percent,label){const p=Math.max(0,Math.min(100,Math.round(percent)));fill.style.width=p+'%';fill.classList.remove('is-busy');track?.setAttribute('aria-valuenow',String(p));if(label)text.textContent=label;},
+    busy(label){fill.classList.add('is-busy');if(label)text.textContent=label;},
+    done(label){fill.classList.remove('is-busy');fill.style.width='100%';track?.setAttribute('aria-valuenow','100');if(label)text.textContent=label;}
+  };
+}
+
+function uploadWithProgress(url,body,onUpload,isRaw) {
+  return new Promise((resolve,reject)=>{
+    const xhr=new XMLHttpRequest();
+    xhr.open('POST',url,true);
+    xhr.responseType='blob';
+    xhr.upload.onprogress=(event)=>{if(event.lengthComputable&&event.total>0)onUpload(event.loaded/event.total);};
+    xhr.onload=()=>{const type=xhr.getResponseHeader('Content-Type')||'';if(xhr.status>=200&&xhr.status<300)return resolve(xhr.response);if(type.includes('application/json')){const reader=new FileReader();reader.onload=()=>{try{reject(Error(JSON.parse(reader.result).error||('Conversion failed ('+xhr.status+')')))}catch(e){reject(Error('Conversion failed ('+xhr.status+')'))}};reader.onerror=()=>reject(Error('Conversion failed ('+xhr.status+')'));reader.readAsText(xhr.response)}else reject(Error('Conversion failed ('+xhr.status+')'))};
+    xhr.onerror=()=>reject(Error('Upload failed. Check your connection and retry.'));
+    xhr.ontimeout=()=>reject(Error('Conversion timed out.'));
+    xhr.timeout=150000;
+    if(isRaw)xhr.setRequestHeader('Content-Type',isRaw);
+    xhr.send(body);
+  });
+}
+
+function downloadBlob(blob,name) {
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+
+async function convertWithProgress(prefix,button,status,work,filename,doneText,after){
+  const progress=convertProgress(prefix);
+  button.disabled=true;status.textContent='';
+  progress.show();progress.set(1,'Uploading… 0%');
+  const started=Date.now();let ticker=null;
+  const serverPhase=()=>{if(ticker)return;progress.busy('Converting on the server… 0s');ticker=setInterval(()=>progress.busy('Converting on the server… '+Math.round((Date.now()-started)/1000)+'s'),250);};
+  try{
+    const blob=await work((ratio)=>{if(ratio<1)progress.set(1+ratio*84,'Uploading… '+Math.round(ratio*100)+'%');else serverPhase();});
+    if(ticker)clearInterval(ticker);
+    progress.set(97,'Preparing download…');
+    downloadBlob(blob,filename);
+    progress.done('Done.');
+    status.textContent=doneText;
+    setTimeout(()=>progress.hide(),4000);
+  }catch(e){if(ticker)clearInterval(ticker);progress.hide();status.textContent=e.message;}
+  finally{button.disabled=false;if(after)after();}
+}
+
 function setupTool(type) {
   if (type === 'text-case') {
     const input = document.getElementById('input');
@@ -601,15 +651,15 @@ function setupTool(type) {
   } else if (type === 'mp4-mp3') {
     const fileInput=document.getElementById('mp4File'),button=document.getElementById('convertMp4'),status=document.getElementById('mp4Status');
     fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to convert '+f.name});
-    button.addEventListener('click',async()=>{const file=fileInput.files?.[0];if(!file)return;button.disabled=true;status.textContent='Uploading and converting. Keep this page open…';try{const bitrate=document.getElementById('mp3Bitrate').value;const response=await fetch('/api/convert/mp4-mp3?bitrate='+encodeURIComponent(bitrate),{method:'POST',headers:{'Content-Type':'video/mp4'},body:file});if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.error||'Conversion failed ('+response.status+')')}const blob=await response.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=file.name.replace(/\.mp4$/i,'')+'.mp3';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);status.textContent='MP3 conversion complete.'}catch(e){status.textContent=e.message}finally{button.disabled=false}});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const bitrate=document.getElementById('mp3Bitrate').value;convertWithProgress('mp4',button,status,(onUpload)=>uploadWithProgress('/api/convert/mp4-mp3?bitrate='+encodeURIComponent(bitrate),file,onUpload,'video/mp4'),file.name.replace(/\.mp4$/i,'')+'.mp3','MP3 conversion complete.')});
   } else if (type === 'doc-convert') {
     const input=document.getElementById('docFile'),direction=document.getElementById('docDirection'),button=document.getElementById('convertDocument'),status=document.getElementById('docStatus');
     const update=()=>{const file=input.files?.[0],ext=direction.value==='docx-pdf'?'.docx':'.pdf';button.disabled=!file||!file.name.toLowerCase().endsWith(ext)||file.size>50*1024*1024;status.textContent=!file?'':file.size>50*1024*1024?'File exceeds 50 MB.':!file.name.toLowerCase().endsWith(ext)?'Choose a '+ext.slice(1).toUpperCase()+' file.':'Ready to convert '+file.name};input.addEventListener('change',update);direction.addEventListener('change',update);
-    button.addEventListener('click',async()=>{const file=input.files?.[0];if(!file)return;button.disabled=true;status.textContent='Uploading and converting…';try{const form=new FormData();form.append('file',file);form.append('direction',direction.value);const response=await fetch('/api/convert/document',{method:'POST',body:form});if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.error||'Conversion failed ('+response.status+')')}const blob=await response.blob(),ext=direction.value==='docx-pdf'?'.pdf':'.docx',url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name.replace(/\.(docx|pdf)$/i,'')+ext;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);status.textContent='Conversion complete.'}catch(e){status.textContent=e.message}finally{button.disabled=false;update()}});
+    button.addEventListener('click',()=>{const file=input.files?.[0];if(!file)return;const dir=direction.value,form=new FormData();form.append('file',file);form.append('direction',dir);convertWithProgress('doc',button,status,(onUpload)=>uploadWithProgress('/api/convert/document',form,onUpload),file.name.replace(/\.(docx|pdf)$/i,'')+(dir==='docx-pdf'?'.pdf':'.docx'),'Conversion complete.',update)});
   } else if (type === 'mp3-mp4') {
     const audioInput=document.getElementById('mp3File'),coverInput=document.getElementById('coverFile'),button=document.getElementById('convertMp3'),status=document.getElementById('mp3Status');
     audioInput.addEventListener('change',()=>{const f=audioInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to convert '+f.name});
-    button.addEventListener('click',async()=>{const file=audioInput.files?.[0];if(!file)return;button.disabled=true;status.textContent='Uploading and creating the MP4…';try{const form=new FormData();form.append('audio',file);if(coverInput.files?.[0])form.append('cover',coverInput.files[0]);form.append('size',document.getElementById('videoSize').value);const response=await fetch('/api/convert/mp3-mp4',{method:'POST',body:form});if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.error||'Conversion failed ('+response.status+')')}const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=file.name.replace(/\.mp3$/i,'')+'.mp4';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);status.textContent='MP4 conversion complete.'}catch(e){status.textContent=e.message}finally{button.disabled=false}});
+    button.addEventListener('click',()=>{const file=audioInput.files?.[0];if(!file)return;const form=new FormData();form.append('audio',file);if(coverInput.files?.[0])form.append('cover',coverInput.files[0]);form.append('size',document.getElementById('videoSize').value);convertWithProgress('mp3',button,status,(onUpload)=>uploadWithProgress('/api/convert/mp3-mp4',form,onUpload),file.name.replace(/\.mp3$/i,'')+'.mp4','MP4 conversion complete.')});
   } else if (type === 'aspect-ratio') {
     const wIn = document.getElementById('wIn');
     const hIn = document.getElementById('hIn');
