@@ -4,7 +4,7 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 
 ## Features
 
-- Search and filter 54 tools by category
+- Search and filter 63 tools by category
 - Responsive directory and individual tool pages
 - Light and dark themes based on the system appearance
 - Reduced-motion support and staggered list entrance animation
@@ -15,6 +15,9 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 - SEO helpers: meta tag generator, keyword density checker, readability analyzer
 - Developer helpers: regex tester, text diff checker, Markdown preview, XML formatter
 - Network helpers: DNS lookup, WHOIS/RDAP lookup, HTTP header checker, live SSL certificate checker
+- Video compressor, audio cutter, and video trimmer
+- Image converter (PNG/JPEG/WebP), favicon ICO generator, and photo cropper
+- JSON to CSV converter, percentage calculator, and age calculator
 - Full-page website screenshots in desktop, tablet, or mobile viewports (headless Chromium required)
 - Client-side processing for most utilities
 - MP4/DOCX/PDF/MP3 temporary files are removed after conversion

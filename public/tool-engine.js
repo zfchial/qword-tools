@@ -950,5 +950,69 @@ function setupTool(type) {
         return 'Screenshot captured.';
       });
     });
+  } else if (type === 'video-compress') {
+    const fileInput=document.getElementById('vcompFile'),button=document.getElementById('convertVcomp'),status=document.getElementById('vcompStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to compress '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('video',file);form.append('level',document.getElementById('vcompLevel').value);const base=file.name.replace(/\.mp4$/i,'');convertWithProgress('vcomp',button,status,(onUpload)=>uploadWithProgress('/api/convert/video-compress',form,onUpload),base+'-compressed.mp4','Video compressed.')});
+  } else if (type === 'audio-cut') {
+    const fileInput=document.getElementById('acutFile'),button=document.getElementById('convertAcut'),status=document.getElementById('acutStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>50*1024*1024;status.textContent=!f?'':f.size>50*1024*1024?'File exceeds 50 MB.':'Ready to cut '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('audio',file);form.append('start',document.getElementById('acutStart').value);form.append('duration',document.getElementById('acutDuration').value);const base=file.name.replace(/\.[^.]+$/,'');const ext=(file.name.match(/\.[^.]+$/)||['.mp3'])[0];convertWithProgress('acut',button,status,(onUpload)=>uploadWithProgress('/api/convert/audio-cut',form,onUpload),base+'-cut'+ext,'Audio cut.')});
+  } else if (type === 'video-trim') {
+    const fileInput=document.getElementById('vtrimFile'),button=document.getElementById('convertVtrim'),status=document.getElementById('vtrimStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to trim '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('video',file);form.append('start',document.getElementById('vtrimStart').value);form.append('duration',document.getElementById('vtrimDuration').value);convertWithProgress('vtrim',button,status,(onUpload)=>uploadWithProgress('/api/convert/video-trim',form,onUpload),file.name.replace(/\.mp4$/i,'')+'-trimmed.mp4','Video trimmed.')});
+  } else if (type === 'image-ico') {
+    const fileInput=document.getElementById('icoFile'),button=document.getElementById('convertIco'),status=document.getElementById('icoStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>15*1024*1024;status.textContent=!f?'':f.size>15*1024*1024?'File exceeds 15 MB.':'Ready to convert '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('image',file);form.append('size',document.getElementById('icoSize').value);convertWithProgress('ico',button,status,(onUpload)=>uploadWithProgress('/api/convert/image-ico',form,onUpload),file.name.replace(/\.[^.]+$/,'')+'.ico','Favicon created.')});
+  } else if (type === 'photo-crop') {
+    const fileInput=document.getElementById('cropFile'),button=document.getElementById('cropDownload'),status=document.getElementById('cropStatus'),canvas=document.getElementById('cropPreview');
+    const xEl=document.getElementById('cropX'),yEl=document.getElementById('cropY'),wEl=document.getElementById('cropW'),hEl=document.getElementById('cropH');
+    let bitmap=null;
+    const redraw=()=>{
+      if(!bitmap)return;
+      const x=Math.max(0,Math.min(bitmap.width-1,Number(xEl.value)||0));
+      const y=Math.max(0,Math.min(bitmap.height-1,Number(yEl.value)||0));
+      const w=Math.max(1,Math.min(bitmap.width-x,Number(wEl.value)||1));
+      const h=Math.max(1,Math.min(bitmap.height-y,Number(hEl.value)||1));
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(bitmap,x,y,w,h,0,0,w,h);
+      status.textContent='Crop '+x+', '+y+' — '+w+' x '+h+' of '+bitmap.width+' x '+bitmap.height+'.';
+      button.disabled=false;
+    };
+    fileInput.addEventListener('change',async()=>{
+      button.disabled=true;
+      if(bitmap)bitmap.close?.();
+      const file=fileInput.files?.[0];if(!file)return;
+      try{bitmap=await createImageBitmap(file);wEl.value=Math.min(300,bitmap.width);hEl.value=Math.min(300,bitmap.height);xEl.value=0;yEl.value=0;redraw();}
+      catch{status.textContent='This image format is not supported by this browser.';}
+    });
+    [xEl,yEl,wEl,hEl].forEach(el=>el.addEventListener('input',redraw));
+    button.addEventListener('click',()=>{
+      if(!bitmap)return;redraw();
+      const mime=document.getElementById('cropFormat').value;
+      canvas.toBlob(blob=>{if(!blob){status.textContent='Crop failed: unsupported output format.';return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);const base=(fileInput.files[0].name||'crop').replace(/\.[^.]+$/,'');a.download=base+'-cropped'+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);status.textContent='Cropped image downloaded.'},mime,0.92);
+    });
+  } else if (type === 'percent-calc') {
+    window.calcPercent=()=>{
+      const mode=document.getElementById('pctMode').value,a=Number(document.getElementById('pctA').value),b=Number(document.getElementById('pctB').value),out=document.getElementById('pctOut');
+      if(!Number.isFinite(a)||!Number.isFinite(b)){out.textContent='Enter two numbers.';return;}
+      if(mode==='of')out.textContent=a+'% of '+b+' = '+(a/100*b);
+      else if(mode==='is'){out.textContent=b===0?'Cannot divide by zero.':a+' is '+(a/b*100)+'% of '+b+'.';}
+      else{out.textContent=a===0?'Cannot compute change from zero.':'Change from '+a+' to '+b+' = '+((b-a)/Math.abs(a)*100)+'%.';}
+    };
+  } else if (type === 'age-calc') {
+    window.calcAge=()=>{
+      const v=document.getElementById('ageBirth').value,out=document.getElementById('ageOut');
+      if(!v){out.textContent='Pick a birth date.';return;}
+      const birth=new Date(v+'T00:00:00'),now=new Date();
+      if(birth>now){out.textContent='Birth date is in the future.';return;}
+      let y=now.getFullYear()-birth.getFullYear(),m=now.getMonth()-birth.getMonth(),d=now.getDate()-birth.getDate();
+      if(d<0){m--;d+=new Date(now.getFullYear(),now.getMonth(),0).getDate();}
+      if(m<0){y--;m+=12;}
+      const days=Math.floor((now.getTime()-birth.getTime())/86400000);
+      out.innerHTML='<p style="font-size:20px;font-weight:700">'+y+' years, '+m+' months, '+d+' days</p><p>Total: '+days.toLocaleString()+' days.</p>';
+    };
   }
 }

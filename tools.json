@@ -232,7 +232,7 @@
     "name": "Crontab Expression Generator",
     "category": "Developer Tools",
     "description": "Generate, test, and explain Unix cron schedule expressions in plain English.",
-    "type": "cron-tool",
+    "type": "cron-helper",
     "seoText": "Build cron schedule strings visually. Select minutes, hours, days, and months, and get clear human-readable explanations of when your job runs.",
     "faq": [
       {
@@ -840,6 +840,132 @@
       {
         "q": "Do pages run JavaScript?",
         "a": "Yes. Capture waits for the page to settle before shooting."
+      }
+    ]
+  },
+  {
+    "slug": "video-compressor",
+    "name": "Video Compressor",
+    "category": "Media & Visuals",
+    "description": "Shrink MP4 videos with light, medium, or high compression.",
+    "type": "video-compress",
+    "seoText": "Compress MP4 videos on the server with FFmpeg. Three levels from light to high. Uploads are deleted after processing.",
+    "faq": [
+      {
+        "q": "What is the size limit?",
+        "a": "MP4 files up to 100 MB."
+      }
+    ]
+  },
+  {
+    "slug": "audio-cutter",
+    "name": "Audio Cutter",
+    "category": "Media & Visuals",
+    "description": "Cut a segment from MP3, WAV, or OGG by start time and duration.",
+    "type": "audio-cut",
+    "seoText": "Cut audio clips by choosing a start second and duration. Keeps the original format. Files are deleted after processing.",
+    "faq": [
+      {
+        "q": "Is the audio re-encoded?",
+        "a": "No. The cut uses stream copy, so it is fast and lossless."
+      }
+    ]
+  },
+  {
+    "slug": "video-trimmer",
+    "name": "Video Trimmer",
+    "category": "Media & Visuals",
+    "description": "Trim an MP4 clip by start time and duration without re-encoding.",
+    "type": "video-trim",
+    "seoText": "Trim MP4 videos by start time and duration. Stream copy keeps quality intact. Files are deleted after processing.",
+    "faq": [
+      {
+        "q": "Why might cuts not be frame-exact?",
+        "a": "Stream copy cuts land on keyframes, so cuts are fast but approximate to a few frames."
+      }
+    ]
+  },
+  {
+    "slug": "image-converter",
+    "name": "Image Converter",
+    "category": "Media & Visuals",
+    "description": "Convert images between PNG, JPEG, and WebP in the browser.",
+    "type": "image-converter",
+    "seoText": "Convert images between PNG, JPEG, and WebP entirely in your browser with adjustable quality. Nothing is uploaded.",
+    "faq": [
+      {
+        "q": "Are files uploaded?",
+        "a": "No. Conversion runs client-side with canvas."
+      }
+    ]
+  },
+  {
+    "slug": "favicon-generator",
+    "name": "Favicon Generator",
+    "category": "Media & Visuals",
+    "description": "Turn any JPG, PNG, or WebP into a Windows ICO favicon.",
+    "type": "image-ico",
+    "seoText": "Generate ICO favicons from JPG, PNG, or WebP images. Choose 16 to 256 px. Processed on the server with FFmpeg.",
+    "faq": [
+      {
+        "q": "Which sizes are supported?",
+        "a": "16, 32, 48, 64, 128, and 256 pixels square."
+      }
+    ]
+  },
+  {
+    "slug": "photo-cropper",
+    "name": "Photo Cropper",
+    "category": "Media & Visuals",
+    "description": "Crop photos to an exact pixel rectangle with live preview.",
+    "type": "photo-crop",
+    "seoText": "Crop photos in the browser with a live canvas preview. Type exact X, Y, width, and height, then download PNG, JPEG, or WebP.",
+    "faq": [
+      {
+        "q": "Are files uploaded?",
+        "a": "No. Cropping runs entirely in your browser."
+      }
+    ]
+  },
+  {
+    "slug": "json-to-csv-converter",
+    "name": "JSON to CSV Converter",
+    "category": "Developer Tools",
+    "description": "Convert a JSON array of objects to CSV and back.",
+    "type": "json-csv",
+    "seoText": "Convert JSON arrays to CSV and CSV back to JSON in your browser. Handles quoted cells and nested values.",
+    "faq": [
+      {
+        "q": "What JSON shape is accepted?",
+        "a": "An array of objects, e.g. [{\"name\":\"Ada\",\"age\":36}]."
+      }
+    ]
+  },
+  {
+    "slug": "percentage-calculator",
+    "name": "Percentage Calculator",
+    "category": "Calculators",
+    "description": "Compute X% of Y, what percent X is of Y, and percent change.",
+    "type": "percent-calc",
+    "seoText": "Free percentage calculator: what is X percent of Y, X is what percent of Y, and percent change from A to B.",
+    "faq": [
+      {
+        "q": "Which calculations are supported?",
+        "a": "Percent of a value, reverse percent, and percent change."
+      }
+    ]
+  },
+  {
+    "slug": "age-calculator",
+    "name": "Age Calculator",
+    "category": "Calculators",
+    "description": "Calculate exact age in years, months, days, and total days.",
+    "type": "age-calc",
+    "seoText": "Calculate your exact age from a birth date: years, months, days, and total days lived.",
+    "faq": [
+      {
+        "q": "How is age computed?",
+        "a": "Calendar-accurate years, months, and days from the birth date to today."
       }
     ]
   }
