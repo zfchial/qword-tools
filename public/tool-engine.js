@@ -155,29 +155,6 @@ function setupTool(type) {
         err.innerText = 'Invalid JSON: ' + e.message;
       }
     };
-  } else if (type === 'json-yaml') {
-    const input = document.getElementById('input');
-    const output = document.getElementById('output');
-    window.jsonToYaml = function() {
-      try {
-        const obj = JSON.parse(input.value);
-        function toY(o, ind = '') {
-          if (typeof o !== 'object' || o === null) return String(o);
-          let res = '';
-          for (const [k, v] of Object.entries(o)) {
-            if (typeof v === 'object' && v !== null) {
-              res += `${ind}${k}:\n${toY(v, ind + '  ')}\n`;
-            } else {
-              res += `${ind}${k}: ${v}\n`;
-            }
-          }
-          return res.trimEnd();
-        }
-        output.value = toY(obj);
-      } catch (e) {
-        output.value = 'Invalid JSON: ' + e.message;
-      }
-    };
   } else if (type === 'base64') {
     const input = document.getElementById('input');
     const output = document.getElementById('output');
@@ -458,6 +435,173 @@ function setupTool(type) {
       document.getElementById('svgPreview').innerHTML = svg;
     };
     genSvg();
+  } else if (type === 'uuid-versions') {
+    window.generateVersionedUuids = () => {
+      const count = Math.max(1, Math.min(100, Number(document.getElementById('count').value) || 1));
+      const version = document.getElementById('version').value;
+      const out = [];
+      for (let i = 0; i < count; i++) {
+        const bytes = crypto.getRandomValues(new Uint8Array(16));
+        if (version === '7') {
+          const now = BigInt(Date.now());
+          for (let j = 5; j >= 0; j--) bytes[5 - j] = Number((now >> BigInt(j * 8)) & 255n);
+          bytes[6] = (bytes[6] & 15) | 112;
+        } else {
+          const now = BigInt(Date.now()) * 10000n + 122192928000000000n;
+          const time = now + BigInt(i);
+          const low = Number(time & 0xffffffffn);
+          const mid = Number((time >> 32n) & 0xffffn);
+          const hi = Number((time >> 48n) & 0x0fffn) | 0x1000;
+          bytes.set([low >>> 24, low >>> 16 & 255, low >>> 8 & 255, low & 255, mid >>> 8, mid & 255, hi >>> 8, hi & 255], 0);
+        }
+        bytes[8] = (bytes[8] & 63) | 128;
+        const hex = [...bytes].map(x => x.toString(16).padStart(2, '0')).join('');
+        out.push(hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20));
+      }
+      document.getElementById('output').value = out.join('\n');
+    };
+    window.generateVersionedUuids();
+  } else if (type === 'cron-helper') {
+    const fields = ['cronMinute','cronHour','cronDay','cronMonth','cronWeekday'];
+    const limits = [[0,59],[0,23],[1,31],[1,12],[0,7]];
+    function updateCron() {
+      const values = fields.map(id => document.getElementById(id).value.trim());
+      document.getElementById('cronOutput').value = values.join(' ');
+      const ok = values.every((v,i) => v === '*' || v.split(',').every(part => {
+        const m = part.match(/^(\*|\d+)(?:-(\d+))?(?:\/\d+)?$/);
+        return m && (!m[1].match(/^\d+$/) || Number(m[1]) >= limits[i][0] && Number(m[1]) <= limits[i][1]) && (!m[2] || Number(m[2]) >= limits[i][0] && Number(m[2]) <= limits[i][1]);
+      }));
+      document.getElementById('cronSummary').textContent = ok ? 'Expression uses standard five-field cron syntax.' : 'Check the values and allowed ranges for this field.';
+      document.getElementById('cronSummary').style.color = ok ? '#10b981' : '#f87171';
+    }
+    fields.forEach(id => document.getElementById(id).addEventListener('input', updateCron));
+    updateCron();
+  } else if (type === 'regex-tester') {
+    const updateRegex = () => {
+      const status = document.getElementById('regexStatus');
+      const output = document.getElementById('regexOutput');
+      try {
+        const re = new RegExp(document.getElementById('regexPattern').value, document.getElementById('regexFlags').value);
+        const text = document.getElementById('regexText').value;
+        const matches = [...text.matchAll(re)].slice(0, 500);
+        output.value = matches.map((m,i) => (i+1)+'. '+JSON.stringify(m[0])+(m.length>1?'\n   Groups: '+JSON.stringify(m.slice(1)): '')).join('\n') || 'No matches';
+        status.textContent = matches.length+' match(es)';
+        status.style.color = '#10b981';
+      } catch (e) { output.value = ''; status.textContent = e.message; status.style.color = '#f87171'; }
+    };
+    ['regexPattern','regexFlags','regexText'].forEach(id => document.getElementById(id).addEventListener('input', updateRegex));
+  } else if (type === 'markdown-preview') {
+    const input = document.getElementById('markdownInput');
+    const preview = document.getElementById('markdownPreview');
+    const esc = value => value.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const inline = value => esc(value).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" rel="noopener noreferrer">$1</a>');
+    const render = () => {
+      const lines = input.value.split('\n'); let html = ''; let list = false; let code = false; let codeLines = [];
+      const closeList = () => { if (list) { html += '</ul>'; list = false; } };
+      for (const line of lines) {
+        if (line.startsWith('```')) { closeList(); if (code) { html += '<pre><code>'+esc(codeLines.join('\n'))+'</code></pre>'; codeLines=[]; code=false; } else code=true; continue; }
+        if (code) { codeLines.push(line); continue; }
+        const h=line.match(/^(#{1,6})\s+(.+)$/); const li=line.match(/^\s*[-*+]\s+(.+)$/);
+        if (h) { closeList(); const n=h[1].length; html += '<h'+n+'>'+inline(h[2])+'</h'+n+'>'; }
+        else if (li) { if (!list) {html+='<ul>';list=true;} html+='<li>'+inline(li[1])+'</li>'; }
+        else if (/^>\s?/.test(line)) {closeList();html+='<blockquote>'+inline(line.replace(/^>\s?/,''))+'</blockquote>';}
+        else {closeList(); if(line.trim()) html+='<p>'+inline(line)+'</p>';}
+      }
+      closeList(); if(code) html+='<pre><code>'+esc(codeLines.join('\n'))+'</code></pre>'; preview.innerHTML=html;
+    };
+    input.addEventListener('input', render); render();
+  } else if (type === 'html-to-text') {
+    window.convertHtmlToText = () => {
+      const source = document.getElementById('htmlInput').value;
+      const preserve = document.getElementById('preserveBreaks').checked;
+      const doc = new DOMParser().parseFromString(source, 'text/html');
+      doc.querySelectorAll('script,style,template,noscript').forEach(el => el.remove());
+      let text = doc.body.textContent || '';
+      text = text.replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').replace(/\n[ \t]+/g,'\n');
+      text = preserve ? text.replace(/\s*\n\s*/g,'\n').replace(/\n{3,}/g,'\n\n').trim() : text.replace(/\s+/g,' ').trim();
+      document.getElementById('htmlOutput').value = text;
+    };
+  } else if (type === 'image-converter' || type === 'image-resizer') {
+    const resize = type === 'image-resizer';
+    const fileInput = document.getElementById(resize ? 'resizeFile' : 'imageFile');
+    const button = document.getElementById(resize ? 'resizeDownload' : 'imageDownload');
+    const status = document.getElementById(resize ? 'resizeStatus' : 'imageStatus');
+    let bitmap = null;
+    fileInput.addEventListener('change', async () => {
+      button.disabled = true;
+      if (bitmap) bitmap.close?.();
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      try { bitmap = await createImageBitmap(file); status.textContent = bitmap.width+' × '+bitmap.height+' pixels'; button.disabled = false; }
+      catch { status.textContent = 'This image format is not supported by this browser.'; }
+    });
+    if (resize) {
+      const width = document.getElementById('resizeWidth'); const height = document.getElementById('resizeHeight'); const lock = document.getElementById('resizeLock');
+      width.addEventListener('input',()=>{if(lock.checked&&bitmap)height.value=Math.max(1,Math.round(Number(width.value)*bitmap.height/bitmap.width))});
+      height.addEventListener('input',()=>{if(lock.checked&&bitmap)width.value=Math.max(1,Math.round(Number(height.value)*bitmap.width/bitmap.height))});
+      fileInput.addEventListener('change',()=>{if(bitmap){width.value=bitmap.width;height.value=bitmap.height}});
+    }
+    button.addEventListener('click',()=>{
+      if(!bitmap)return;
+      const canvas=document.createElement('canvas');
+      const w=resize?Math.max(1,Math.min(12000,Number(document.getElementById('resizeWidth').value)||bitmap.width)):bitmap.width;
+      const h=resize?Math.max(1,Math.min(12000,Number(document.getElementById('resizeHeight').value)||bitmap.height)):bitmap.height;
+      canvas.width=w;canvas.height=h;const ctx=canvas.getContext('2d');
+      const mime=document.getElementById(resize?'resizeFormat':'imageFormat').value;
+      if(mime==='image/jpeg'){ctx.fillStyle='#ffffff';ctx.fillRect(0,0,w,h)}
+      ctx.drawImage(bitmap,0,0,w,h);
+      canvas.toBlob(blob=>{if(!blob){status.textContent='Conversion failed: unsupported output format.';return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);const base=(fileInput.files[0].name||'image').replace(/\.[^.]+$/,'');a.download=base+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);status.textContent='Converted '+w+' × '+h+' image successfully.'},mime,Number(document.getElementById('imageQuality')?.value||85)/100);
+    });
+  } else if (type === 'json-csv') {
+    window.convertDataFormat = direction => {
+      const input=document.getElementById('dataInput').value;const out=document.getElementById('dataOutput');const status=document.getElementById('dataStatus');
+      try {
+        if(direction==='json-csv'){
+          const rows=JSON.parse(input);if(!Array.isArray(rows)||rows.some(x=>!x||typeof x!=='object'||Array.isArray(x)))throw Error('Input must be an array of JSON objects.');
+          const keys=[...new Set(rows.flatMap(Object.keys))];const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+          out.value=[keys.map(q).join(','),...rows.map(row=>keys.map(k=>q(typeof row[k]==='object'&&row[k]!==null?JSON.stringify(row[k]):row[k])).join(','))].join('\r\n');
+        }else{
+          const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<input.length;i++){const c=input[i];if(quoted){if(c==='"'&&input[i+1]==='"'){cell+='"';i++}else if(c==='"')quoted=false;else cell+=c}else if(c==='"')quoted=true;else if(c===','){row.push(cell);cell=''}else if(c==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell=''}else cell+=c}if(quoted)throw Error('CSV has an unclosed quoted cell.');if(cell||row.length){row.push(cell.replace(/\r$/,''));rows.push(row)}
+          const headers=rows.shift()||[];out.value=JSON.stringify(rows.filter(r=>r.some(v=>v!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))),null,2);
+        }status.textContent='Conversion complete.';
+      }catch(e){out.value='';status.textContent=e.message;}
+    };
+  } else if (type === 'xml-json') {
+    window.convertXmlJson = direction => {
+      const input=document.getElementById('xmlInput').value;const out=document.getElementById('xmlOutput');const status=document.getElementById('xmlStatus');
+      try {
+        if(direction==='xml-json'){
+          const doc=new DOMParser().parseFromString(input,'application/xml');if(doc.querySelector('parsererror'))throw Error('Invalid XML document.');
+          const nodeValue=node=>{const obj={};for(const a of node.attributes)obj['@'+a.name]=a.value;for(const child of node.children){const val=nodeValue(child);if(Object.prototype.hasOwnProperty.call(obj,child.tagName))obj[child.tagName]=Array.isArray(obj[child.tagName])?[...obj[child.tagName],val]:[obj[child.tagName],val];else obj[child.tagName]=val}const text=[...node.childNodes].filter(n=>n.nodeType===Node.TEXT_NODE).map(n=>n.nodeValue.trim()).filter(Boolean).join(' ');if(!Object.keys(obj).length)return text;if(text)obj['#text']=text;return obj};
+          out.value=JSON.stringify({[doc.documentElement.tagName]:nodeValue(doc.documentElement)},null,2);
+        }else{
+          const obj=JSON.parse(input);const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+          const build=(name,value)=>{if(!/^[A-Za-z_][\w.:-]*$/.test(name))throw Error('Invalid XML element name: '+name);if(Array.isArray(value))return value.map(v=>build(name,v)).join('');if(value&&typeof value==='object')return '<'+name+'>'+Object.entries(value).map(([k,v])=>k.startsWith('@')? ' '+k.slice(1)+'="'+esc(v)+'"':k==='#text'?esc(v):build(k,v)).join('')+'</'+name+'>';return '<'+name+'>'+esc(value??'')+'</'+name+'>'};
+          const entries=Object.entries(obj);if(entries.length!==1)throw Error('JSON root must contain exactly one property for the XML root element.');out.value='<?xml version="1.0" encoding="UTF-8"?>\n'+build(entries[0][0],entries[0][1]);
+        }status.textContent='Conversion complete.';
+      }catch(e){out.value='';status.textContent=e.message;}
+    };
+  } else if (type === 'text-hex') {
+    window.convertTextHex = direction => {
+      const input=document.getElementById('hexInput').value;const out=document.getElementById('hexOutput');const status=document.getElementById('hexStatus');
+      try{if(direction==='encode')out.value=[...new TextEncoder().encode(input)].map(b=>b.toString(16).padStart(2,'0')).join(' ');else{const hex=input.replace(/0x/gi,'').replace(/\s+/g,'');if(!/^(?:[0-9a-f]{2})*$/i.test(hex))throw Error('Provide an even number of hexadecimal digits.');const bytes=new Uint8Array(hex.match(/.{2}/g)?.map(x=>parseInt(x,16))||[]);out.value=new TextDecoder('utf-8',{fatal:true}).decode(bytes)}status.textContent='Conversion complete.'}catch(e){out.value='';status.textContent=e.message}
+    };
+  } else if (type === 'json-yaml') {
+    window.convertJsonYaml=(direction)=>{const input=document.getElementById('yamlInput').value;const out=document.getElementById('yamlOutput');const status=document.getElementById('yamlStatus');
+      const dump=(v,indent=0)=>{const pad=' '.repeat(indent);if(Array.isArray(v)){if(!v.length)return pad+'[]';return v.map(x=>{const rendered=dump(x,indent+2).trimStart();return pad+'- '+(x&&typeof x==='object'?(Array.isArray(x)?'\n'+rendered:rendered):rendered)}).join('\n')}if(v&&typeof v==='object'){const entries=Object.entries(v);if(!entries.length)return pad+'{}';return entries.map(([k,x])=>{const key=/^[A-Za-z_][\w.-]*$/.test(k)?k:JSON.stringify(k);if(x&&typeof x==='object'&&Object.keys(x).length)return pad+key+':\n'+dump(x,indent+2);return pad+key+': '+(typeof x==='string'?JSON.stringify(x):JSON.stringify(x))}).join('\n')}return pad+JSON.stringify(v)};
+      const parse=text=>{const lines=text.split(/\r?\n/).map((raw,i)=>({indent:(raw.match(/^ */)||[''])[0].length,text:raw.trim(),i})).filter(x=>x.text&&!x.text.startsWith('#'));if(!lines.length)return null;let pos=0;const scalar=x=>{if(x==='null'||x==='~')return null;if(x==='true')return true;if(x==='false')return false;if(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(x))return Number(x);if(x.startsWith('[')||x.startsWith('{'))return JSON.parse(x);if((x.startsWith('"')&&x.endsWith('"'))||(x.startsWith("'")&&x.endsWith("'"))){if(x[0]==='"')return JSON.parse(x);return x.slice(1,-1).replace(/''/g,"'")}return x};
+        const read=indent=>{const array=lines[pos].text.startsWith('- ');const out=array?[]:{};while(pos<lines.length&&lines[pos].indent===indent){const line=lines[pos];if(array){if(!line.text.startsWith('-'))throw Error('Mixed sequence and mapping at line '+(line.i+1));const value=line.text.slice(2);pos++;if(!value){if(pos>=lines.length||lines[pos].indent<=indent)out.push(null);else out.push(read(lines[pos].indent))}else{const m=value.match(/^([^:]+):(?:\s*(.*))?$/);if(m){const obj={};obj[m[1].trim()]=m[2]?scalar(m[2]):(pos<lines.length&&lines[pos].indent>indent?read(lines[pos].indent):null);while(pos<lines.length&&lines[pos].indent>indent){const childIndent=lines[pos].indent;const child=read(childIndent);if(!child||Array.isArray(child)||typeof child!=='object')throw Error('Expected mapping at line '+(lines[pos-1].i+1));Object.assign(obj,child)}out.push(obj)}else out.push(scalar(value))}}
+          else{if(line.text.startsWith('- '))throw Error('Mixed mapping and sequence at line '+(line.i+1));const m=line.text.match(/^([^:]+):(?:\s*(.*))?$/);if(!m)throw Error('Invalid mapping at line '+(line.i+1));const key=String(scalar(m[1].trim()));if(Object.prototype.hasOwnProperty.call(out,key))throw Error('Duplicate key: '+key);pos++;out[key]=m[2]?scalar(m[2]):(pos<lines.length&&lines[pos].indent>indent?read(lines[pos].indent):null)}}if(pos<lines.length&&lines[pos].indent>indent)throw Error('Invalid indentation at line '+(lines[pos].i+1));return out};const value=read(lines[0].indent);if(pos!==lines.length)throw Error('Could not parse line '+(lines[pos].i+1));return value};
+      try{out.value=direction==='json-yaml'?dump(JSON.parse(input)):JSON.stringify(parse(input),null,2);status.textContent='Conversion complete (supported YAML subset).'}catch(e){out.value='';status.textContent=e.message}
+    };
+  } else if (type === 'tsv-csv') {
+    window.convertTsvCsv=direction=>{const input=document.getElementById('tableInput').value;const out=document.getElementById('tableOutput');const status=document.getElementById('tableStatus');const delim=direction==='tsv-csv'?'\t':',';try{const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<input.length;i++){const c=input[i];if(quoted){if(c==='"'&&input[i+1]==='"'){cell+='"';i++}else if(c==='"')quoted=false;else cell+=c}else if(c==='"')quoted=true;else if(c===delim){row.push(cell);cell=''}else if(c==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell=''}else cell+=c}if(quoted)throw Error('Unclosed quoted cell.');if(cell||row.length){row.push(cell.replace(/\r$/,''));rows.push(row)}const target=direction==='tsv-csv'?',':'\t';out.value=rows.map(r=>r.map(v=>/["\r\n]/.test(v)||v.includes(target)?'"'+v.replace(/"/g,'""')+'"':v).join(target)).join('\r\n');status.textContent='Converted '+rows.length+' row(s).'}catch(e){out.value='';status.textContent=e.message}};
+  } else if (type === 'batch-image') {
+    const files=document.getElementById('batchFiles'),button=document.getElementById('batchConvert'),status=document.getElementById('batchStatus'),results=document.getElementById('batchResults');files.addEventListener('change',()=>{button.disabled=!files.files.length;results.textContent='';status.textContent=files.files.length>20?'Select no more than 20 files.':files.files.length+' file(s) selected.';if(files.files.length>20)button.disabled=true});button.addEventListener('click',async()=>{const selected=[...files.files].slice(0,20),mime=document.getElementById('batchFormat').value,q=Number(document.getElementById('batchQuality').value)/100;button.disabled=true;results.textContent='';let done=0;for(const file of selected){try{const image=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=image.width;canvas.height=image.height;const ctx=canvas.getContext('2d');if(mime==='image/jpeg'){ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height)}ctx.drawImage(image,0,0);image.close?.();const blob=await new Promise(resolve=>canvas.toBlob(resolve,mime,q));if(!blob)throw Error('Unsupported output');const a=document.createElement('a');a.href=URL.createObjectURL(blob);const base=file.name.replace(/\.[^.]+$/,'');a.download=base+(mime==='image/png'?'.png':mime==='image/jpeg'?'.jpg':'.webp');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);const li=document.createElement('li');li.textContent=file.name+' converted ('+Math.round(file.size/1024)+' KB → '+Math.round(blob.size/1024)+' KB)';results.appendChild(li)}catch(e){const li=document.createElement('li');li.textContent=file.name+': conversion failed ('+e.message+')';results.appendChild(li)}done++;status.textContent='Processed '+done+' of '+selected.length}button.disabled=false});
+  } else if (type === 'mp4-mp3') {
+    const fileInput=document.getElementById('mp4File'),button=document.getElementById('convertMp4'),status=document.getElementById('mp4Status');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to convert '+f.name});
+    button.addEventListener('click',async()=>{const file=fileInput.files?.[0];if(!file)return;button.disabled=true;status.textContent='Uploading and converting. Keep this page open…';try{const bitrate=document.getElementById('mp3Bitrate').value;const response=await fetch('/api/convert/mp4-mp3?bitrate='+encodeURIComponent(bitrate),{method:'POST',headers:{'Content-Type':'video/mp4'},body:file});if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.error||'Conversion failed ('+response.status+')')}const blob=await response.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=file.name.replace(/\.mp4$/i,'')+'.mp3';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);status.textContent='MP3 conversion complete.'}catch(e){status.textContent=e.message}finally{button.disabled=false}});
   } else if (type === 'aspect-ratio') {
     const wIn = document.getElementById('wIn');
     const hIn = document.getElementById('hIn');

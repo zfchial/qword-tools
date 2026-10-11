@@ -1,0 +1,19 @@
+import type { Metadata } from "next";
+
+const pages: Record<string, { title: string; description: string; body: React.ReactNode }> = {
+  about: { title: "About Qword Tools", description: "Learn about Qword Tools and our free online utilities.", body: <><p>Qword Tools is a collection of practical online utilities for text, development, security, conversion, and media tasks.</p><p>Our goal is to make everyday digital work simpler with clear, easy-to-use tools. Tool behavior and data handling may vary by tool; please avoid entering sensitive information unless a tool explicitly explains its privacy behavior.</p><p>For questions or feedback, contact the site owner through the contact details published on this website.</p></> },
+  privacy: { title: "Privacy Policy", description: "Read the Qword Tools privacy policy and learn how data and cookies may be handled.", body: <><p>This page explains how Qword Tools may handle information when you visit the website. The site may use essential server logs for operation and security. Some tools process input in your browser; third-party services, embedded content, or future advertising may use their own technologies.</p><h2>Cookies and advertising</h2><p>If advertising is enabled, advertising partners such as Google may use cookies or similar technologies to serve, measure, and personalize ads, subject to your location and consent choices. You can manage browser cookies in your browser settings and, where provided, use the site consent controls.</p><h2>Information you enter</h2><p>Most text and image tools process input in your browser. The MP4 to MP3 converter uploads the selected video to this server for processing; temporary input and output files are deleted after conversion. Uploads are limited to 100 MB. Do not upload confidential or sensitive files. Tool behavior can differ by feature; check the individual tool page before submitting data.</p><h2>Third-party services</h2><p>External providers may process data under their own privacy policies. We will update this policy when services and site practices change.</p><h2>Contact</h2><p>Contact the site owner using the contact details published on this website with privacy questions or requests.</p><p>Last updated: 2026-06-15.</p></> },
+  terms: { title: "Terms of Use", description: "Read the terms for using Qword Tools online utilities.", body: <><p>Qword Tools is provided for general informational and utility purposes. Use the website and its tools at your own discretion and verify important results before relying on them.</p><h2>No warranty</h2><p>The website and tools are provided as available, without guarantees that they will be uninterrupted, error-free, or suitable for a particular purpose.</p><h2>Acceptable use</h2><p>Do not use the website to violate laws, infringe others’ rights, disrupt services, or attempt unauthorized access.</p><h2>Changes</h2><p>Features and these terms may change as the site develops. Continued use after changes means you accept the updated terms.</p><p>Last updated: 2026-06-15.</p></> },
+};
+
+export function generateStaticParams() { return Object.keys(pages).map((slug) => ({ slug })); }
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  return pages[slug] ? { title: pages[slug].title, description: pages[slug].description } : { title: "Page Not Found" };
+}
+export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const page = pages[slug];
+  if (!page) return <h1 className="text-3xl font-bold">Page not found</h1>;
+  return <article className="tool-article mx-auto max-w-3xl rounded-xl border p-6 md:p-9"><h1 className="mb-5 text-3xl font-bold">{page.title}</h1><div className="legal-copy space-y-4 leading-relaxed">{page.body}</div></article>;
+}

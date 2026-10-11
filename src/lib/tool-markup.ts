@@ -1,168 +1,4 @@
-const express = require('express');
-const compression = require('compression');
-const fs = require('fs');
-const path = require('path');
-
-const app = express();
-const PORT = process.env.PORT || 8080;
-const SITE_URL = 'https://qword.tech';
-const tools = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools.json'), 'utf8'));
-
-app.use(compression());
-app.use('/public', express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
-
-function escapeHtml(value = '') {
-  return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-}
-
-function baseLayout({ title, description, canonical, content, schema = '' }) {
-  const safeTitle = escapeHtml(title);
-  const safeDescription = escapeHtml(description);
-  const safeCanonical = escapeHtml(canonical);
-  return `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${safeTitle} | Qword Tools</title>
-  <meta name="description" content="${safeDescription}">
-  <link rel="canonical" href="${safeCanonical}">
-  <meta name="robots" content="index,follow,max-image-preview:large">
-  <meta property="og:site_name" content="Qword Tools">
-  <meta property="og:locale" content="en_US">
-  <meta property="og:title" content="${safeTitle} | Qword Tools">
-  <meta property="og:description" content="${safeDescription}">
-  <meta property="og:url" content="${safeCanonical}">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary">
-  ${schema ? `<script type="application/ld+json">${schema}</script>` : ''}
-  <style>
-    :root {
-      --bg: #0b0f19;
-      --card-bg: #111827;
-      --border: #1f2937;
-      --border-focus: #3b82f6;
-      --text: #f9fafb;
-      --muted: #9ca3af;
-      --brand: #3b82f6;
-      --brand-hover: #2563eb;
-      --brand-light: rgba(59, 130, 246, 0.1);
-      --accent: #10b981;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background-color: var(--bg); color: var(--text); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
-    a { color: var(--brand); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    header { background: rgba(17, 24, 39, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
-    .header-inner { max-width: 1240px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-    .logo { font-size: 20px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 6px; letter-spacing: -0.02em; }
-    .logo span { color: var(--brand); }
-    nav { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-    nav a { font-size: 14px; color: var(--muted); font-weight: 500; }
-    nav a:hover { color: #fff; text-decoration: none; }
-    main { flex: 1; max-width: 1240px; width: 100%; margin: 0 auto; padding: 24px 20px; }
-    .ad-slot { margin: 20px 0; background: rgba(31, 41, 55, 0.25); border: 1px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center; min-height: 90px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .ad-leaderboard { max-width: 728px; margin: 16px auto; }
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 24px; }
-    input, textarea, select, button { background: #1f2937; border: 1px solid #374151; color: var(--text); border-radius: 6px; padding: 10px 14px; font-size: 14px; font-family: inherit; }
-    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--border-focus); }
-    button { background: var(--brand); color: #fff; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
-    button:hover { background: var(--brand-hover); }
-    button.btn-secondary { background: #374151; }
-    button.btn-secondary:hover { background: #4b5563; }
-    footer { border-top: 1px solid var(--border); padding: 24px 20px; text-align: center; color: var(--muted); font-size: 13px; margin-top: 40px; }
-    footer nav { justify-content: center; margin-top: 8px; }
-    @media (max-width: 700px) { .header-inner { align-items: flex-start; flex-direction: column; } nav { gap: 10px 14px; } main { padding: 18px 14px; } }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="header-inner">
-      <a href="/" class="logo">Qword<span>Tools</span></a>
-      <nav aria-label="Main navigation">
-        <a href="/">All Tools</a>
-        <a href="/#text-writing">Text</a>
-        <a href="/#developer-tools">Dev</a>
-        <a href="/#security-crypto">Security</a>
-        <a href="/#converters-math">Converters</a>
-        <a href="/#media-visuals">Media</a>
-      </nav>
-    </div>
-  </header>
-  <main>
-    <div class="ad-slot ad-leaderboard" data-slot="header"><span>Advertisement</span></div>
-    ${content}
-    <div class="ad-slot ad-leaderboard" data-slot="footer"><span>Advertisement</span></div>
-  </main>
-  <footer>
-    <p>&copy; ${new Date().getFullYear()} Qword Tools. Free online utilities for everyday work.</p>
-    <nav aria-label="Legal"><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/sitemap.xml">Sitemap</a></nav>
-  </footer>
-</body>
-</html>`;
-}
-
-app.get('/', (req, res) => {
-  const categories = [...new Set(tools.map(t => t.category))];
-  const toolCards = tools.map(t => `
-    <div class="tool-card" data-cat="${escapeHtml(t.category)}" data-name="${escapeHtml(`${t.name} ${t.description}`.toLowerCase())}">
-      <span class="badge">${escapeHtml(t.category)}</span>
-      <h3><a href="/tool/${encodeURIComponent(t.slug)}">${escapeHtml(t.name)}</a></h3>
-      <p>${escapeHtml(t.description)}</p>
-      <a href="/tool/${encodeURIComponent(t.slug)}" class="open-link">Open Tool &rarr;</a>
-    </div>
-  `).join('');
-  const catButtons = categories.map(c => `<button type="button" class="cat-btn" data-category="${escapeHtml(c)}" onclick="filterCat(this.dataset.category)">${escapeHtml(c)}</button>`).join('');
-  const content = `
-    <div class="hero">
-      <h1>Free Online Tools for Everyday Work</h1>
-      <p>Use practical text, developer, security, conversion, and media tools directly in your browser. No account required.</p>
-      <div class="search-box"><label class="sr-only" for="toolSearch">Search tools</label><input type="search" id="toolSearch" placeholder="Search tools by name or task..." oninput="filterTools()"></div>
-      <div class="cat-bar"><button type="button" class="cat-btn active" onclick="filterCat('all')">All (${tools.length})</button>${catButtons}</div>
-    </div>
-    <div class="tools-grid" id="toolsGrid">${toolCards}</div>
-    <style>
-      .hero { text-align: center; padding: 36px 10px 24px; }
-      .hero h1 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 10px; letter-spacing: -0.02em; }
-      .hero p { color: var(--muted); max-width: 680px; margin: 0 auto 20px; font-size: 15px; }
-      .search-box { max-width: 580px; margin: 0 auto 18px; }
-      .search-box input { width: 100%; font-size: 15px; padding: 14px 20px; border-radius: 99px; }
-      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-      .cat-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 26px; }
-      .cat-btn { background: #1f2937; border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--muted); }
-      .cat-btn.active, .cat-btn:hover { background: var(--brand); color: #fff; }
-      .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
-      .tool-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; transition: transform 0.15s, border-color 0.15s; }
-      .tool-card:hover { transform: translateY(-2px); border-color: var(--brand); }
-      .tool-card .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--brand); font-weight: 700; margin-bottom: 8px; }
-      .tool-card h3 { font-size: 17px; margin-bottom: 8px; color: #fff; font-weight: 700; }
-      .tool-card p { color: var(--muted); font-size: 13px; flex: 1; margin-bottom: 14px; line-height: 1.5; }
-      .tool-card .open-link { font-size: 13px; font-weight: 600; color: var(--brand); align-self: flex-start; }
-    </style>
-    <script>
-      let curCat = 'all';
-      function filterCat(cat) {
-        curCat = cat;
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.toggle('active', (cat === 'all' && b.textContent.startsWith('All')) || b.dataset.category === cat));
-        filterTools();
-      }
-      function filterTools() {
-        const q = (document.getElementById('toolSearch').value || '').toLowerCase().trim();
-        document.querySelectorAll('.tool-card').forEach(card => {
-          const matchCat = curCat === 'all' || card.dataset.cat.toLowerCase() === curCat.toLowerCase();
-          card.style.display = matchCat && card.dataset.name.includes(q) ? 'flex' : 'none';
-        });
-      }
-    </script>`;
-  res.send(baseLayout({
-    title: 'Free Online Tools: Text, Developer, Security & More',
-    description: 'Explore free online text, developer, security, conversion, and media tools. Search practical utilities and use them directly in your browser.',
-    canonical: `${SITE_URL}/`,
-    content
-  }));
-});
-
-function renderToolInteractive(tool) {
+export function renderToolInteractive(tool: { type: string }) {
   const type = tool.type;
   if (type === 'text-case') {
     return `
@@ -513,6 +349,34 @@ function renderToolInteractive(tool) {
       <div class="field"><label>SVG Code</label><textarea id="output" rows="4" readonly style="font-family:monospace"></textarea></div>
       <button id="copyBtn" onclick="copyOutput('output')">Copy SVG</button>
     `;
+  } else if (type === 'uuid-versions') {
+    return `<div class="field"><label for="version">UUID version</label><select id="version"><option value="7">Version 7 (sortable)</option><option value="1">Version 1 (time-based)</option></select></div><div class="field" style="margin-top:14px"><label for="count">Quantity (1–100)</label><input id="count" type="number" value="5" min="1" max="100"></div><button onclick="generateVersionedUuids()">Generate UUIDs</button><div class="field" style="margin-top:14px"><label for="output">Generated UUIDs</label><textarea id="output" rows="8" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('output')">Copy UUIDs</button>`;
+  } else if (type === 'cron-helper') {
+    return `<p>Choose values for the standard five-field cron format. Use * for every value.</p><div class="field"><label for="cronMinute">Minute (0–59)</label><input id="cronMinute" value="0" maxlength="20"></div><div class="field"><label for="cronHour">Hour (0–23)</label><input id="cronHour" value="9" maxlength="20"></div><div class="field"><label for="cronDay">Day of month (1–31)</label><input id="cronDay" value="*" maxlength="20"></div><div class="field"><label for="cronMonth">Month (1–12)</label><input id="cronMonth" value="*" maxlength="20"></div><div class="field"><label for="cronWeekday">Day of week (0–7)</label><input id="cronWeekday" value="1-5" maxlength="20"></div><div class="field" style="margin-top:14px"><label for="cronOutput">Cron expression</label><input id="cronOutput" readonly style="width:100%"></div><p id="cronSummary" aria-live="polite"></p><button id="copyBtn" class="btn-secondary" onclick="copyOutput('cronOutput')">Copy expression</button>`;
+  } else if (type === 'regex-tester') {
+    return `<div class="field"><label for="regexPattern">Regular expression</label><input id="regexPattern" placeholder="\\b\\w+\\b" style="width:100%"></div><div class="field"><label for="regexFlags">Flags</label><input id="regexFlags" value="g" maxlength="6" style="width:100%"></div><div class="field"><label for="regexText">Test text</label><textarea id="regexText" rows="7" placeholder="Paste sample text..."></textarea></div><p id="regexStatus" aria-live="polite"></p><div class="field"><label for="regexOutput">Matches and capture groups</label><textarea id="regexOutput" rows="7" readonly></textarea></div>`;
+  } else if (type === 'markdown-preview') {
+    return `<div class="field"><label for="markdownInput">Markdown</label><textarea id="markdownInput" rows="12" placeholder="# Heading\n\nWrite **Markdown** here..."></textarea></div><h2>Preview</h2><article id="markdownPreview" class="markdown-preview"></article><style>.markdown-preview{background:#fff;color:#20242b;padding:20px;border-radius:8px;overflow-wrap:anywhere}.markdown-preview pre{background:#111827;color:#f9fafb;padding:12px;overflow:auto}.markdown-preview code{font-family:monospace}.markdown-preview blockquote{border-left:3px solid #9ca3af;padding-left:12px;color:#4b5563}.markdown-preview img{max-width:100%}.markdown-preview table{border-collapse:collapse}.markdown-preview td,.markdown-preview th{border:1px solid #9ca3af;padding:5px}</style>`;
+  } else if (type === 'html-to-text') {
+    return `<div class="field"><label for="htmlInput">HTML snippet</label><textarea id="htmlInput" rows="9" placeholder="Paste HTML code here..."></textarea></div><label><input type="checkbox" id="preserveBreaks" checked> Preserve block line breaks</label><div style="margin:12px 0"><button onclick="convertHtmlToText()">Convert to text</button></div><div class="field"><label for="htmlOutput">Plain text</label><textarea id="htmlOutput" rows="9" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('htmlOutput')">Copy text</button>`;
+  } else if (type === 'image-converter') {
+    return `<div class="field"><label for="imageFile">Choose image</label><input type="file" id="imageFile" accept="image/*"></div><div class="field"><label for="imageFormat">Output format</label><select id="imageFormat"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></div><div class="field"><label for="imageQuality">Quality (JPEG/WebP)</label><input type="range" id="imageQuality" min="10" max="100" value="85"></div><p id="imageStatus" aria-live="polite"></p><button id="imageDownload" disabled>Convert &amp; Download</button>`;
+  } else if (type === 'image-resizer') {
+    return `<div class="field"><label for="resizeFile">Choose image</label><input type="file" id="resizeFile" accept="image/*"></div><div style="display:flex;gap:12px;flex-wrap:wrap"><div><label for="resizeWidth">Width</label><input type="number" id="resizeWidth" min="1" max="12000" value="800"></div><div><label for="resizeHeight">Height</label><input type="number" id="resizeHeight" min="1" max="12000" value="600"></div></div><label><input type="checkbox" id="resizeLock" checked> Keep aspect ratio</label><div class="field"><label for="resizeFormat">Output</label><select id="resizeFormat"><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option><option value="image/webp">WebP</option></select></div><button id="resizeDownload" disabled>Resize &amp; Download</button><p id="resizeStatus" aria-live="polite"></p>`;
+  } else if (type === 'json-csv') {
+    return `<div class="field"><label for="dataInput">JSON or CSV input</label><textarea id="dataInput" rows="9" placeholder='[{"name":"Ada","age":36}]'></textarea></div><div class="actions"><button onclick="convertDataFormat('json-csv')">JSON to CSV</button><button class="btn-secondary" onclick="convertDataFormat('csv-json')">CSV to JSON</button></div><div class="field" style="margin-top:14px"><label for="dataOutput">Output</label><textarea id="dataOutput" rows="9" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('dataOutput')">Copy output</button><p id="dataStatus" aria-live="polite"></p>`;
+  } else if (type === 'xml-json') {
+    return `<div class="field"><label for="xmlInput">XML or JSON input</label><textarea id="xmlInput" rows="9" placeholder="&lt;root&gt;&lt;item&gt;value&lt;/item&gt;&lt;/root&gt;"></textarea></div><div class="actions"><button onclick="convertXmlJson('xml-json')">XML to JSON</button><button class="btn-secondary" onclick="convertXmlJson('json-xml')">JSON to XML</button></div><div class="field" style="margin-top:14px"><label for="xmlOutput">Output</label><textarea id="xmlOutput" rows="9" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('xmlOutput')">Copy output</button><p id="xmlStatus" aria-live="polite"></p>`;
+  } else if (type === 'text-hex') {
+    return `<div class="field"><label for="hexInput">Text or hexadecimal bytes</label><textarea id="hexInput" rows="8" placeholder="Type UTF-8 text here..."></textarea></div><div class="actions"><button onclick="convertTextHex('encode')">Text to Hex</button><button class="btn-secondary" onclick="convertTextHex('decode')">Hex to Text</button></div><div class="field" style="margin-top:14px"><label for="hexOutput">Output</label><textarea id="hexOutput" rows="8" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('hexOutput')">Copy output</button><p id="hexStatus" aria-live="polite"></p>`;
+  } else if (type === 'json-yaml') {
+    return `<div class="field"><label for="yamlInput">JSON or YAML input</label><textarea id="yamlInput" rows="10" placeholder='{"name":"example","items":[1,2]}'></textarea></div><div class="actions"><button onclick="convertJsonYaml('json-yaml')">JSON to YAML</button><button class="btn-secondary" onclick="convertJsonYaml('yaml-json')">YAML to JSON</button></div><div class="field" style="margin-top:14px"><label for="yamlOutput">Output</label><textarea id="yamlOutput" rows="10" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('yamlOutput')">Copy output</button><p id="yamlStatus" aria-live="polite"></p><p>Supported YAML subset: nested objects and arrays, strings, numbers, booleans, null. Anchors, tags, and advanced block scalars are not supported.</p>`;
+  } else if (type === 'tsv-csv') {
+    return `<div class="field"><label for="tableInput">CSV or TSV input</label><textarea id="tableInput" rows="10" placeholder="name,city\nAda,London"></textarea></div><div class="actions"><button onclick="convertTsvCsv('tsv-csv')">TSV to CSV</button><button class="btn-secondary" onclick="convertTsvCsv('csv-tsv')">CSV to TSV</button></div><div class="field" style="margin-top:14px"><label for="tableOutput">Output</label><textarea id="tableOutput" rows="10" readonly></textarea></div><button id="copyBtn" class="btn-secondary" onclick="copyOutput('tableOutput')">Copy output</button><p id="tableStatus" aria-live="polite"></p>`;
+  } else if (type === 'batch-image') {
+    return `<div class="field"><label for="batchFiles">Choose images (up to 20)</label><input type="file" id="batchFiles" accept="image/*" multiple></div><div class="field"><label for="batchFormat">Output format</label><select id="batchFormat"><option value="image/webp">WebP</option><option value="image/jpeg">JPEG</option><option value="image/png">PNG</option></select></div><div class="field"><label for="batchQuality">Quality</label><input type="range" id="batchQuality" min="10" max="100" value="80"></div><button id="batchConvert" disabled>Convert and download</button><p id="batchStatus" aria-live="polite"></p><ul id="batchResults"></ul>`;
+  } else if (type === 'mp4-mp3') {
+    return `<div class="field"><label for="mp4File">Choose MP4 video (max 100 MB)</label><input id="mp4File" type="file" accept="video/mp4,.mp4"></div><div class="field"><label for="mp3Bitrate">MP3 bitrate</label><select id="mp3Bitrate"><option value="128k">128 kbps</option><option value="192k" selected>192 kbps</option><option value="256k">256 kbps</option><option value="320k">320 kbps</option></select></div><button id="convertMp4" disabled>Convert to MP3</button><p id="mp4Status" aria-live="polite"></p><p>Files are uploaded to the server for conversion. Temporary files are deleted after processing. Avoid confidential videos.</p>`;
   } else if (type === 'aspect-ratio') {
     return `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
@@ -527,39 +391,3 @@ function renderToolInteractive(tool) {
   }
   return `<p>Tool interface ready.</p>`;
 }
-
-app.get('/tool/:slug', (req, res) => {
-  const tool = tools.find(t => t.slug === req.params.slug);
-  if (!tool) return res.status(404).send(baseLayout({ title: 'Tool Not Found', description: 'The requested tool could not be found.', canonical: SITE_URL + req.path, content: '<h1>Tool Not Found</h1><p><a href="/">Back to tools</a></p>' }));
-  const related = tools.filter(t => t.category === tool.category && t.slug !== tool.slug).slice(0, 4);
-  const relatedHtml = related.map(r => '<li><a href="/tool/' + encodeURIComponent(r.slug) + '">' + escapeHtml(r.name) + '</a> — ' + escapeHtml(r.description) + '</li>').join('');
-  const faqHtml = (tool.faq || []).map(f => '<div class="faq-item"><h4>' + escapeHtml(f.q) + '</h4><p>' + escapeHtml(f.a) + '</p></div>').join('');
-  const content = '<div class="breadcrumbs"><a href="/">Home</a> &rsaquo; <span>' + escapeHtml(tool.category) + '</span> &rsaquo; <span>' + escapeHtml(tool.name) + '</span></div>' +
-    '<div class="tool-header"><h1>' + escapeHtml(tool.name) + '</h1><p class="tool-desc">' + escapeHtml(tool.description) + '</p></div>' +
-    '<div class="card interactive-container">' + renderToolInteractive(tool) + '</div>' +
-    '<div class="ad-slot" data-slot="mid-content"><span>Advertisement</span></div>' +
-    '<article class="card article-content"><h2>About ' + escapeHtml(tool.name) + '</h2><p>' + escapeHtml(tool.seoText || tool.description) + '</p>' +
-    (faqHtml ? '<h3>Frequently Asked Questions</h3><div class="faq-list">' + faqHtml + '</div>' : '') +
-    (related.length ? '<h3>Related Tools</h3><ul class="related-list">' + relatedHtml + '</ul>' : '') + '</article>' +
-    '<style>.breadcrumbs{font-size:13px;color:var(--muted);margin-bottom:16px}.tool-header{margin-bottom:20px}.tool-header h1{font-size:28px;color:#fff;margin-bottom:6px;font-weight:800}.tool-desc{color:var(--muted);font-size:15px}.interactive-container{margin-bottom:20px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--muted)}.field textarea,.field input{width:100%}.article-content{margin-top:24px}.article-content h2,.article-content h3{color:#fff;margin:20px 0 10px;font-size:20px;font-weight:700}.article-content p{color:#d1d5db;line-height:1.7;margin-bottom:14px;font-size:15px}.faq-item{margin-bottom:14px}.faq-item h4{color:#e5e7eb;font-size:15px;margin-bottom:4px;font-weight:600}.faq-item p{color:var(--muted);font-size:14px}.related-list{margin-left:20px;color:var(--muted);font-size:14px}.related-list li{margin-bottom:6px}</style>' +
-    '<script src="/public/tool-engine.js"></script><script>setupTool(' + JSON.stringify(tool.type) + ');</script>';
-  const schema = JSON.stringify({ '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: tool.name, applicationCategory: 'UtilitiesApplication', operatingSystem: 'Any', description: tool.description, url: SITE_URL + '/tool/' + tool.slug }).replace(/</g, '\u003c');
-  res.send(baseLayout({ title: tool.name, description: tool.description, canonical: SITE_URL + '/tool/' + tool.slug, content, schema }));
-});
-
-const legalPages = {
-  about: { title: 'About Qword Tools', description: 'Learn about Qword Tools and our free online utilities.', body: '<h1>About Qword Tools</h1><p>Qword Tools is a collection of practical online utilities for text, development, security, conversion, and media tasks.</p><p>Our goal is to make everyday digital work simpler with clear, easy-to-use tools. Tool behavior and data handling may vary by tool; please avoid entering sensitive information unless a tool explicitly explains its privacy behavior.</p><p>For questions or feedback, contact the site owner through the contact details published on this website.</p>' },
-  privacy: { title: 'Privacy Policy', description: 'Read the Qword Tools privacy policy and learn how data and cookies may be handled.', body: '<h1>Privacy Policy</h1><p>This page explains how Qword Tools may handle information when you visit the website. The site may use essential server logs for operation and security. Some tools process input in your browser; third-party services, embedded content, or future advertising may use their own technologies.</p><h2>Cookies and advertising</h2><p>If advertising is enabled, advertising partners such as Google may use cookies or similar technologies to serve, measure, and personalize ads, subject to your location and consent choices. You can manage browser cookies in your browser settings and, where provided, use the site consent controls.</p><h2>Information you enter</h2><p>Tool processing can differ by feature. Do not submit passwords, private keys, confidential documents, or other sensitive information. We do not promise that every tool works exclusively on your device unless its page explicitly says so.</p><h2>Third-party services</h2><p>External providers may process data under their own privacy policies. We will update this policy when services and site practices change.</p><h2>Contact</h2><p>Contact the site owner using the contact details published on this website with privacy questions or requests.</p><p>Last updated: 2026-06-15.</p>' },
-  terms: { title: 'Terms of Use', description: 'Read the terms for using Qword Tools online utilities.', body: '<h1>Terms of Use</h1><p>Qword Tools is provided for general informational and utility purposes. Use the website and its tools at your own discretion and verify important results before relying on them.</p><h2>No warranty</h2><p>The website and tools are provided as available, without guarantees that they will be uninterrupted, error-free, or suitable for a particular purpose.</p><h2>Acceptable use</h2><p>Do not use the website to violate laws, infringe others’ rights, disrupt services, or attempt unauthorized access.</p><h2>Changes</h2><p>Features and these terms may change as the site develops. Continued use after changes means you accept the updated terms.</p><p>Last updated: 2026-06-15.</p>' }
-};
-for (const [route, page] of Object.entries(legalPages)) app.get('/' + route, (req, res) => res.send(baseLayout({ title: page.title, description: page.description, canonical: SITE_URL + '/' + route, content: '<article class="card article-content">' + page.body + '</article>' })));
-
-app.get('/sitemap.xml', (req, res) => {
-  const urls = ['/', '/about', '/privacy', '/terms', ...tools.map(t => '/tool/' + encodeURIComponent(t.slug))];
-  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.map(url => '  <url><loc>' + SITE_URL + url + '</loc><changefreq>weekly</changefreq><priority>' + (url === '/' ? '1.0' : '0.7') + '</priority></url>').join('\n') + '\n</urlset>';
-  res.type('application/xml').send(xml);
-});
-
-app.get('/robots.txt', (req, res) => res.type('text/plain').send('User-agent: *\nAllow: /\nSitemap: ' + SITE_URL + '/sitemap.xml\n'));
-
-app.listen(PORT, '0.0.0.0', () => console.log('Qword Tools running on port ' + PORT));

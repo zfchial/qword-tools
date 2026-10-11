@@ -7,8 +7,14 @@
     "type": "text-case",
     "seoText": "The Text Case Converter allows quick transformation of any text into various capitalization styles. Ideal for programmers, writers, and editors who need consistent casing across titles, variables, and database keys.",
     "faq": [
-      {"q": "What cases are supported?", "a": "Uppercase, lowercase, Title Case, sentence case, camelCase, snake_case, kebab-case, and PascalCase."},
-      {"q": "Is data stored on the server?", "a": "No, all conversions occur client-side in your web browser."}
+      {
+        "q": "What cases are supported?",
+        "a": "Uppercase, lowercase, Title Case, sentence case, camelCase, snake_case, kebab-case, and PascalCase."
+      },
+      {
+        "q": "Is data stored on the server?",
+        "a": "No, all conversions occur client-side in your web browser."
+      }
     ]
   },
   {
@@ -19,7 +25,10 @@
     "type": "word-counter",
     "seoText": "Monitor text length, word density, and character limits in real time. Perfect for meeting essay length requirements, social media character caps, and article reading time estimations.",
     "faq": [
-      {"q": "How is reading time calculated?", "a": "Estimated using an average reading speed of 200 words per minute."}
+      {
+        "q": "How is reading time calculated?",
+        "a": "Estimated using an average reading speed of 200 words per minute."
+      }
     ]
   },
   {
@@ -30,7 +39,10 @@
     "type": "lorem",
     "seoText": "Generate standard Cicero Lorem Ipsum dummy text for mockups, web layouts, and graphic design without relying on slow external generators.",
     "faq": [
-      {"q": "Can I choose the number of paragraphs?", "a": "Yes, specify any number between 1 and 20 paragraphs."}
+      {
+        "q": "Can I choose the number of paragraphs?",
+        "a": "Yes, specify any number between 1 and 20 paragraphs."
+      }
     ]
   },
   {
@@ -41,7 +53,10 @@
     "type": "slugify",
     "seoText": "Convert titles and phrases into URL-friendly slugs by stripping special characters, normalizing accents, and replacing spaces with clean hyphens.",
     "faq": [
-      {"q": "Does it remove punctuation?", "a": "Yes, all special symbols and punctuation marks are stripped automatically."}
+      {
+        "q": "Does it remove punctuation?",
+        "a": "Yes, all special symbols and punctuation marks are stripped automatically."
+      }
     ]
   },
   {
@@ -52,7 +67,10 @@
     "type": "dedupe-lines",
     "seoText": "Clean up large datasets, email lists, keywords, and code entries by removing duplicate lines instantly with optional sorting.",
     "faq": [
-      {"q": "Does it support sorting?", "a": "Yes, you can deduplicate while keeping order or sort A-Z."}
+      {
+        "q": "Does it support sorting?",
+        "a": "Yes, you can deduplicate while keeping order or sort A-Z."
+      }
     ]
   },
   {
@@ -63,7 +81,10 @@
     "type": "line-sort",
     "seoText": "Organize text lines alphabetically, numerically, by length, or in reverse order. Add line numbers or prefixes with one click.",
     "faq": [
-      {"q": "Can it sort numerically?", "a": "Yes, standard natural sorting is supported."}
+      {
+        "q": "Can it sort numerically?",
+        "a": "Yes, standard natural sorting is supported."
+      }
     ]
   },
   {
@@ -74,7 +95,10 @@
     "type": "find-replace",
     "seoText": "Quickly replace recurring words, variables, or patterns in large text blocks. Supports both plain matching and RegExp patterns.",
     "faq": [
-      {"q": "Is regular expression matching supported?", "a": "Yes, toggle the RegExp checkbox to use regex patterns."}
+      {
+        "q": "Is regular expression matching supported?",
+        "a": "Yes, toggle the RegExp checkbox to use regex patterns."
+      }
     ]
   },
   {
@@ -85,7 +109,10 @@
     "type": "text-reverse",
     "seoText": "Reverse any text string by character or by word. Great for testing palindrome strings, obfuscation, or creative typography.",
     "faq": [
-      {"q": "Can I reverse words instead of letters?", "a": "Yes, toggle between character reversal and word order reversal."}
+      {
+        "q": "Can I reverse words instead of letters?",
+        "a": "Yes, toggle between character reversal and word order reversal."
+      }
     ]
   },
   {
@@ -96,7 +123,10 @@
     "type": "morse-code",
     "seoText": "Translate plain text into International Morse Code audio patterns and decipher incoming dots and dashes back into readable text.",
     "faq": [
-      {"q": "What symbols are used?", "a": "Standard dot (.) and dash (-) characters with slashes (/) for word boundaries."}
+      {
+        "q": "What symbols are used?",
+        "a": "Standard dot (.) and dash (-) characters with slashes (/) for word boundaries."
+      }
     ]
   },
   {
@@ -107,7 +137,10 @@
     "type": "json-formatter",
     "seoText": "Format, validate, and clean JSON payloads with customizable indentation. Instantly pinpoint missing commas, invalid brackets, and syntax errors.",
     "faq": [
-      {"q": "Can it minify JSON for production?", "a": "Yes, click the Minify button to compress JSON to a single line."}
+      {
+        "q": "Can it minify JSON for production?",
+        "a": "Yes, click the Minify button to compress JSON to a single line."
+      }
     ]
   },
   {
@@ -118,7 +151,10 @@
     "type": "json-yaml",
     "seoText": "Seamlessly translate Kubernetes, Docker Compose, and CI/CD configurations between JSON and human-readable YAML syntax.",
     "faq": [
-      {"q": "Does it support arrays and nested objects?", "a": "Yes, full hierarchical structure is preserved in conversion."}
+      {
+        "q": "Does it support arrays and nested objects?",
+        "a": "Yes, full hierarchical structure is preserved in conversion."
+      }
     ]
   },
   {
@@ -129,7 +165,10 @@
     "type": "base64",
     "seoText": "Encode authentication headers, data tokens, and raw strings into Base64 format, or decode encoded strings back into clean UTF-8 text.",
     "faq": [
-      {"q": "Does it support international characters?", "a": "Yes, UTF-8 unicode encoding is fully supported."}
+      {
+        "q": "Does it support international characters?",
+        "a": "Yes, UTF-8 unicode encoding is fully supported."
+      }
     ]
   },
   {
@@ -140,7 +179,10 @@
     "type": "url-encode",
     "seoText": "Escape special query parameter characters according to RFC 3986 URI standards, or decode percent-encoded URLs back into readable text.",
     "faq": [
-      {"q": "Why is URL encoding needed?", "a": "Special characters like spaces and ampersands must be encoded to avoid breaking URL structure."}
+      {
+        "q": "Why is URL encoding needed?",
+        "a": "Special characters like spaces and ampersands must be encoded to avoid breaking URL structure."
+      }
     ]
   },
   {
@@ -151,7 +193,10 @@
     "type": "html-entities",
     "seoText": "Convert HTML characters like <, >, &, and quotes into safe entities to display code snippets without rendering them as active tags.",
     "faq": [
-      {"q": "Can it decode numerical entities?", "a": "Yes, both named entities (&amp;) and numerical entities (&#38;) are supported."}
+      {
+        "q": "Can it decode numerical entities?",
+        "a": "Yes, both named entities (&amp;) and numerical entities (&#38;) are supported."
+      }
     ]
   },
   {
@@ -162,7 +207,10 @@
     "type": "css-tool",
     "seoText": "Optimize stylesheet sizes for faster web load times by stripping whitespace, or beautify minified CSS with clean indentation.",
     "faq": [
-      {"q": "Does minification alter CSS rules?", "a": "No, rules and selectors remain identical; only superfluous formatting is removed."}
+      {
+        "q": "Does minification alter CSS rules?",
+        "a": "No, rules and selectors remain identical; only superfluous formatting is removed."
+      }
     ]
   },
   {
@@ -173,7 +221,24 @@
     "type": "sql-formatter",
     "seoText": "Beautify complex SQL SELECT, INSERT, UPDATE, and JOIN statements with standard capitalization and readable indentation.",
     "faq": [
-      {"q": "Which SQL dialects are supported?", "a": "Standard ANSI SQL, MySQL, PostgreSQL, SQLite, and SQL Server syntax."}
+      {
+        "q": "Which SQL dialects are supported?",
+        "a": "Standard ANSI SQL, MySQL, PostgreSQL, SQLite, and SQL Server syntax."
+      }
+    ]
+  },
+  {
+    "slug": "crontab-expression-generator",
+    "name": "Crontab Expression Generator",
+    "category": "Developer Tools",
+    "description": "Generate, test, and explain Unix cron schedule expressions in plain English.",
+    "type": "cron-tool",
+    "seoText": "Build cron schedule strings visually. Select minutes, hours, days, and months, and get clear human-readable explanations of when your job runs.",
+    "faq": [
+      {
+        "q": "What syntax is used?",
+        "a": "Standard 5-field Unix cron: Minute Hour Day Month Weekday."
+      }
     ]
   },
   {
@@ -184,7 +249,10 @@
     "type": "docker-run-compose",
     "seoText": "Easily transform docker run CLI commands with ports, volumes, environment variables, and restart policies into valid docker-compose.yml files.",
     "faq": [
-      {"q": "Does it parse volume mounts and ports?", "a": "Yes, -p, -v, -e, --name, and --restart flags are parsed automatically."}
+      {
+        "q": "Does it parse volume mounts and ports?",
+        "a": "Yes, -p, -v, -e, --name, and --restart flags are parsed automatically."
+      }
     ]
   },
   {
@@ -195,7 +263,10 @@
     "type": "user-agent",
     "seoText": "Analyze User-Agent strings to identify browser version, engine family, operating system architecture, and client viewport dimensions.",
     "faq": [
-      {"q": "Does it detect my current browser?", "a": "Yes, active browser details are prefilled automatically on page load."}
+      {
+        "q": "Does it detect my current browser?",
+        "a": "Yes, active browser details are prefilled automatically on page load."
+      }
     ]
   },
   {
@@ -206,7 +277,10 @@
     "type": "http-status",
     "seoText": "Quick reference for all official HTTP response codes. Understand the difference between 401 Unauthorized, 403 Forbidden, and 502 Bad Gateway.",
     "faq": [
-      {"q": "Are unofficial codes included?", "a": "Yes, common Cloudflare and Nginx custom codes (like 520, 521, 522) are noted."}
+      {
+        "q": "Are unofficial codes included?",
+        "a": "Yes, common Cloudflare and Nginx custom codes (like 520, 521, 522) are noted."
+      }
     ]
   },
   {
@@ -217,7 +291,10 @@
     "type": "uuid",
     "seoText": "Generate RFC 4122 compliant 128-bit UUID v4 strings for database keys, session IDs, and tracking tokens with cryptographic randomness.",
     "faq": [
-      {"q": "Are these UUIDs collision-free?", "a": "The probability of a duplicate UUID v4 is virtually zero (1 in 2^122)."}
+      {
+        "q": "Are these UUIDs collision-free?",
+        "a": "The probability of a duplicate UUID v4 is virtually zero (1 in 2^122)."
+      }
     ]
   },
   {
@@ -228,7 +305,10 @@
     "type": "password-gen",
     "seoText": "Protect your online credentials with high-entropy passwords generated using browser crypto hardware algorithms.",
     "faq": [
-      {"q": "Are the generated passwords stored anywhere?", "a": "No, passwords are generated completely in memory and never transmitted."}
+      {
+        "q": "Are the generated passwords stored anywhere?",
+        "a": "No, passwords are generated completely in memory and never transmitted."
+      }
     ]
   },
   {
@@ -239,7 +319,10 @@
     "type": "hash-gen",
     "seoText": "Calculate real-time cryptographic hash digests using official Web Crypto API implementations. Verify data integrity and password hashes.",
     "faq": [
-      {"q": "Which algorithms are supported?", "a": "SHA-1, SHA-256, SHA-384, and SHA-512."}
+      {
+        "q": "Which algorithms are supported?",
+        "a": "SHA-1, SHA-256, SHA-384, and SHA-512."
+      }
     ]
   },
   {
@@ -250,7 +333,10 @@
     "type": "jwt-decoder",
     "seoText": "Safely decode and inspect JSON Web Tokens (JWT). View expiration dates, claims, issuer details, and algorithm headers without server validation.",
     "faq": [
-      {"q": "Is the secret key required to inspect claims?", "a": "No, JWT payload and headers are Base64URL-encoded and can be read by anyone."}
+      {
+        "q": "Is the secret key required to inspect claims?",
+        "a": "No, JWT payload and headers are Base64URL-encoded and can be read by anyone."
+      }
     ]
   },
   {
@@ -261,7 +347,10 @@
     "type": "color-converter",
     "seoText": "Convert color formats for CSS stylesheets and graphic design. Preview color swatches and copy HEX, RGB, or HSL values instantly.",
     "faq": [
-      {"q": "Can I pick colors visually?", "a": "Yes, use the interactive color picker box to select any shade."}
+      {
+        "q": "Can I pick colors visually?",
+        "a": "Yes, use the interactive color picker box to select any shade."
+      }
     ]
   },
   {
@@ -272,7 +361,10 @@
     "type": "timestamp",
     "seoText": "Convert 10-digit epoch seconds and 13-digit epoch milliseconds to localized ISO 8601 date strings and vice versa.",
     "faq": [
-      {"q": "Does it support local timezone and UTC?", "a": "Yes, both UTC and local timezone representations are displayed."}
+      {
+        "q": "Does it support local timezone and UTC?",
+        "a": "Yes, both UTC and local timezone representations are displayed."
+      }
     ]
   },
   {
@@ -283,7 +375,10 @@
     "type": "binary-text",
     "seoText": "Translate ASCII characters to 8-bit binary sequences and decode binary strings back to readable text.",
     "faq": [
-      {"q": "What format is used?", "a": "Standard 8-bit space-separated binary notation."}
+      {
+        "q": "What format is used?",
+        "a": "Standard 8-bit space-separated binary notation."
+      }
     ]
   },
   {
@@ -294,7 +389,10 @@
     "type": "base-converter",
     "seoText": "Perform conversions across standard computer numerical bases: Decimal (Base 10), Hexadecimal (Base 16), Binary (Base 2), and Octal (Base 8).",
     "faq": [
-      {"q": "Does it support large integers?", "a": "Yes, standard BigInt precision is supported."}
+      {
+        "q": "Does it support large integers?",
+        "a": "Yes, standard BigInt precision is supported."
+      }
     ]
   },
   {
@@ -305,7 +403,10 @@
     "type": "px-rem",
     "seoText": "Streamline responsive web design by converting pixel values to relative REM units based on your project's base font size.",
     "faq": [
-      {"q": "What is the standard base font size?", "a": "Standard browser default is 16px (1rem = 16px)."}
+      {
+        "q": "What is the standard base font size?",
+        "a": "Standard browser default is 16px (1rem = 16px)."
+      }
     ]
   },
   {
@@ -316,7 +417,10 @@
     "type": "byte-converter",
     "seoText": "Calculate storage values across Bytes, Kilobytes, Megabytes, Gigabytes, and Terabytes in 1000 (SI) and 1024 (IEC) formats.",
     "faq": [
-      {"q": "What is the difference between MB and MiB?", "a": "1 MB is 1,000,000 bytes (decimal), while 1 MiB is 1,048,576 bytes (binary)."}
+      {
+        "q": "What is the difference between MB and MiB?",
+        "a": "1 MB is 1,000,000 bytes (decimal), while 1 MiB is 1,048,576 bytes (binary)."
+      }
     ]
   },
   {
@@ -327,7 +431,10 @@
     "type": "qr-code",
     "seoText": "Generate clean, scannable QR codes instantly from URLs, phone numbers, or arbitrary text. Download the generated code as a high-resolution PNG image.",
     "faq": [
-      {"q": "Can I download the QR code?", "a": "Yes, you can save the QR code image directly to your device."}
+      {
+        "q": "Can I download the QR code?",
+        "a": "Yes, you can save the QR code image directly to your device."
+      }
     ]
   },
   {
@@ -338,7 +445,10 @@
     "type": "svg-placeholder",
     "seoText": "Quickly create placeholder mockup images for web development and wireframes with customizable width, height, colors, and labels.",
     "faq": [
-      {"q": "Can I copy the SVG code directly?", "a": "Yes, you can copy the raw SVG markup or download the SVG file."}
+      {
+        "q": "Can I copy the SVG code directly?",
+        "a": "Yes, you can copy the raw SVG markup or download the SVG file."
+      }
     ]
   },
   {
@@ -349,7 +459,10 @@
     "type": "aspect-ratio",
     "seoText": "Find proportional width and height for images, video players, and banners. Supports standard 16:9, 4:3, 21:9, and custom ratios.",
     "faq": [
-      {"q": "How does it work?", "a": "Enter width or height, and the corresponding dimension is calculated automatically."}
+      {
+        "q": "How does it work?",
+        "a": "Enter width or height, and the corresponding dimension is calculated automatically."
+      }
     ]
   }
 ]
