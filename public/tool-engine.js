@@ -955,44 +955,191 @@ function setupTool(type) {
     fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to compress '+f.name});
     button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('video',file);form.append('level',document.getElementById('vcompLevel').value);const base=file.name.replace(/\.mp4$/i,'');convertWithProgress('vcomp',button,status,(onUpload)=>uploadWithProgress('/api/convert/video-compress',form,onUpload),base+'-compressed.mp4','Video compressed.')});
   } else if (type === 'audio-cut') {
-    const fileInput=document.getElementById('acutFile'),button=document.getElementById('convertAcut'),status=document.getElementById('acutStatus');
-    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>50*1024*1024;status.textContent=!f?'':f.size>50*1024*1024?'File exceeds 50 MB.':'Ready to cut '+f.name});
-    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('audio',file);form.append('start',document.getElementById('acutStart').value);form.append('duration',document.getElementById('acutDuration').value);const base=file.name.replace(/\.[^.]+$/,'');const ext=(file.name.match(/\.[^.]+$/)||['.mp3'])[0];convertWithProgress('acut',button,status,(onUpload)=>uploadWithProgress('/api/convert/audio-cut',form,onUpload),base+'-cut'+ext,'Audio cut.')});
+    const fileInput=document.getElementById('acutFile'),button=document.getElementById('convertAcut'),status=document.getElementById('acutStatus'),audio=document.getElementById('acutAudio'),startR=document.getElementById('acutStartR'),endR=document.getElementById('acutEndR'),startLbl=document.getElementById('acutStartLbl'),endLbl=document.getElementById('acutEndLbl'),previewBtn=document.getElementById('acutPlaySel');
+    const fmt=(s)=>{s=Math.max(0,s||0);const m=Math.floor(s/60),ss=(s%60).toFixed(1);return m+':'+(ss<10?'0':'')+ss;};
+    const sync=()=>{
+      const dur=audio.duration||0;
+      let s=Number(startR.value),e=Number(endR.value);
+      if(s>e){if(document.activeElement===startR)e=s;else s=e;}
+      startLbl.textContent=fmt(s);endLbl.textContent=fmt(e);
+      const ok=dur>0&&e>s;
+      button.disabled=!fileInput.files?.[0]||!ok;
+      previewBtn.disabled=!ok;
+      status.textContent=!dur?'':ok?'Selected '+fmt(s)+' to '+fmt(e)+' ('+fmt(e-s)+').':'End must be after start.';
+    };
+    fileInput.addEventListener('change',()=>{
+      const f=fileInput.files?.[0];
+      button.disabled=true;previewBtn.disabled=true;
+      if(!f)return;
+      if(f.size>50*1024*1024){status.textContent='File exceeds 50 MB.';return;}
+      audio.src=URL.createObjectURL(f);audio.hidden=false;
+      audio.onloadedmetadata=()=>{startR.max=audio.duration;endR.max=audio.duration;startR.value=0;endR.value=Math.min(30,audio.duration);sync();};
+    });
+    startR.addEventListener('input',()=>{audio.currentTime=Number(startR.value);sync();});
+    endR.addEventListener('input',sync);
+    audio.addEventListener('timeupdate',()=>{
+      const e=Number(endR.value);
+      if(audio.currentTime>=e)audio.pause();
+    });
+    previewBtn.addEventListener('click',()=>{audio.currentTime=Number(startR.value);audio.play().catch(()=>{});});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const s=Number(startR.value),e=Number(endR.value);const form=new FormData();form.append('audio',file);form.append('start',String(s));form.append('duration',String(Math.max(0.1,e-s)));const base=file.name.replace(/\.[^.]+$/,'');const ext=(file.name.match(/\.[^.]+$/)||['.mp3'])[0];convertWithProgress('acut',button,status,(onUpload)=>uploadWithProgress('/api/convert/audio-cut',form,onUpload),base+'-cut'+ext,'Audio cut.')});
   } else if (type === 'video-trim') {
-    const fileInput=document.getElementById('vtrimFile'),button=document.getElementById('convertVtrim'),status=document.getElementById('vtrimStatus');
-    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to trim '+f.name});
-    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('video',file);form.append('start',document.getElementById('vtrimStart').value);form.append('duration',document.getElementById('vtrimDuration').value);convertWithProgress('vtrim',button,status,(onUpload)=>uploadWithProgress('/api/convert/video-trim',form,onUpload),file.name.replace(/\.mp4$/i,'')+'-trimmed.mp4','Video trimmed.')});
+    const fileInput=document.getElementById('vtrimFile'),button=document.getElementById('convertVtrim'),status=document.getElementById('vtrimStatus'),video=document.getElementById('vtrimVideo'),startR=document.getElementById('vtrimStartR'),endR=document.getElementById('vtrimEndR'),startLbl=document.getElementById('vtrimStartLbl'),endLbl=document.getElementById('vtrimEndLbl'),previewBtn=document.getElementById('vtrimPlaySel');
+    const fmt=(s)=>{s=Math.max(0,s||0);const m=Math.floor(s/60),ss=(s%60).toFixed(1);return m+':'+(ss<10?'0':'')+ss;};
+    const sync=()=>{
+      const dur=video.duration||0;
+      let s=Number(startR.value),e=Number(endR.value);
+      if(s>e){if(document.activeElement===startR)e=s;else s=e;}
+      startLbl.textContent=fmt(s);endLbl.textContent=fmt(e);
+      const ok=dur>0&&e>s;
+      button.disabled=!fileInput.files?.[0]||!ok;
+      previewBtn.disabled=!ok;
+      status.textContent=!dur?'':ok?'Selected '+fmt(s)+' to '+fmt(e)+' ('+fmt(e-s)+').':'End must be after start.';
+    };
+    fileInput.addEventListener('change',()=>{
+      const f=fileInput.files?.[0];
+      button.disabled=true;previewBtn.disabled=true;
+      if(!f)return;
+      if(f.size>100*1024*1024){status.textContent='File exceeds 100 MB.';return;}
+      video.src=URL.createObjectURL(f);video.hidden=false;
+      video.onloadedmetadata=()=>{startR.max=video.duration;endR.max=video.duration;startR.value=0;endR.value=Math.min(10,video.duration);sync();};
+    });
+    startR.addEventListener('input',()=>{video.currentTime=Number(startR.value);sync();});
+    endR.addEventListener('input',sync);
+    video.addEventListener('timeupdate',()=>{
+      const e=Number(endR.value);
+      if(video.currentTime>=e)video.pause();
+    });
+    previewBtn.addEventListener('click',()=>{video.currentTime=Number(startR.value);video.play().catch(()=>{});});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const s=Number(startR.value),e=Number(endR.value);const form=new FormData();form.append('video',file);form.append('start',String(s));form.append('duration',String(Math.max(0.1,e-s)));convertWithProgress('vtrim',button,status,(onUpload)=>uploadWithProgress('/api/convert/video-trim',form,onUpload),file.name.replace(/\.mp4$/i,'')+'-trimmed.mp4','Video trimmed.')});
   } else if (type === 'image-ico') {
     const fileInput=document.getElementById('icoFile'),button=document.getElementById('convertIco'),status=document.getElementById('icoStatus');
     fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>15*1024*1024;status.textContent=!f?'':f.size>15*1024*1024?'File exceeds 15 MB.':'Ready to convert '+f.name});
     button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const form=new FormData();form.append('image',file);form.append('size',document.getElementById('icoSize').value);convertWithProgress('ico',button,status,(onUpload)=>uploadWithProgress('/api/convert/image-ico',form,onUpload),file.name.replace(/\.[^.]+$/,'')+'.ico','Favicon created.')});
   } else if (type === 'photo-crop') {
-    const fileInput=document.getElementById('cropFile'),button=document.getElementById('cropDownload'),status=document.getElementById('cropStatus'),canvas=document.getElementById('cropPreview');
-    const xEl=document.getElementById('cropX'),yEl=document.getElementById('cropY'),wEl=document.getElementById('cropW'),hEl=document.getElementById('cropH');
-    let bitmap=null;
-    const redraw=()=>{
+    const fileInput=document.getElementById('cropFile'),button=document.getElementById('cropDownload'),status=document.getElementById('cropStatus'),stage=document.getElementById('cropStage'),preview=document.getElementById('cropPreview');
+    let bitmap=null,rect=null,ratio=0,drag=null;
+    const scale=()=>stage.width/bitmap.width;
+    const draw=()=>{
       if(!bitmap)return;
-      const x=Math.max(0,Math.min(bitmap.width-1,Number(xEl.value)||0));
-      const y=Math.max(0,Math.min(bitmap.height-1,Number(yEl.value)||0));
-      const w=Math.max(1,Math.min(bitmap.width-x,Number(wEl.value)||1));
-      const h=Math.max(1,Math.min(bitmap.height-y,Number(hEl.value)||1));
-      canvas.width=w;canvas.height=h;
-      canvas.getContext('2d').drawImage(bitmap,x,y,w,h,0,0,w,h);
-      status.textContent='Crop '+x+', '+y+' — '+w+' x '+h+' of '+bitmap.width+' x '+bitmap.height+'.';
+      const ctx=stage.getContext('2d');
+      ctx.clearRect(0,0,stage.width,stage.height);
+      ctx.drawImage(bitmap,0,0,stage.width,stage.height);
+      if(!rect)return;
+      const s=scale(),x=rect.x*s,y=rect.y*s,w=rect.w*s,h=rect.h*s;
+      ctx.fillStyle='rgba(0,0,0,0.55)';
+      ctx.fillRect(0,0,stage.width,y);
+      ctx.fillRect(0,y+h,stage.width,stage.height-y-h);
+      ctx.fillRect(0,y,x,h);
+      ctx.fillRect(x+w,y,stage.width-x-w,h);
+      ctx.strokeStyle='#22c55e';ctx.lineWidth=2;
+      ctx.strokeRect(x,y,w,h);
+      ctx.fillStyle='#22c55e';
+      [[x,y],[x+w,y],[x,y+h],[x+w,y+h]].forEach(([cx,cy])=>{ctx.beginPath();ctx.arc(cx,cy,8,0,7);ctx.fill();});
+      const pctx=preview.getContext('2d');
+      preview.width=Math.round(rect.w);preview.height=Math.round(rect.h);
+      pctx.drawImage(bitmap,rect.x,rect.y,rect.w,rect.h,0,0,preview.width,preview.height);
+      status.textContent='Crop '+Math.round(rect.w)+' x '+Math.round(rect.h)+' px.';
       button.disabled=false;
     };
+    const applyRatio=()=>{
+      if(!bitmap||!rect)return;
+      if(ratio>0){
+        const cx=rect.x+rect.w/2,cy=rect.y+rect.h/2;
+        let w=rect.w,h=w/ratio;
+        if(h>rect.h){h=rect.h;w=h*ratio;}
+        w=Math.min(w,bitmap.width);h=Math.min(h,bitmap.height);
+        rect={x:Math.max(0,Math.min(bitmap.width-w,cx-w/2)),y:Math.max(0,Math.min(bitmap.height-h,cy-h/2)),w,h};
+        draw();
+      }
+    };
+    document.querySelectorAll('[data-crop-ratio]').forEach(btn=>btn.addEventListener('click',()=>{
+      ratio=btn.dataset.cropRatio==='free'?0:Number(btn.dataset.cropRatio);
+      applyRatio();
+      status.textContent+=ratio?' Ratio locked.':' Free ratio.';
+    }));
+    const pos=(e)=>{
+      const r=stage.getBoundingClientRect();
+      const px=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+      const py=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+      return {x:px/r.width*bitmap.width,y:py/r.height*bitmap.height};
+    };
+    const hit=(p)=>{
+      if(!rect)return null;
+      const s=scale(),tol=14/s;
+      const corners=[['nw',rect.x,rect.y],['ne',rect.x+rect.w,rect.y],['sw',rect.x,rect.y+rect.h],['se',rect.x+rect.w,rect.y+rect.h]];
+      for(const [id,cx,cy] of corners){if(Math.abs(p.x-cx)<tol&&Math.abs(p.y-cy)<tol)return id;}
+      if(p.x>rect.x&&p.x<rect.x+rect.w&&p.y>rect.y&&p.y<rect.y+rect.h)return 'move';
+      return 'new';
+    };
+    const startDrag=(e)=>{
+      if(!bitmap)return;
+      e.preventDefault();
+      const p=pos(e),mode=hit(p);
+      drag={mode,sx:p.x,sy:p.y,orig:rect?{...rect}:null};
+      if(mode==='new')rect={x:p.x,y:p.y,w:0,h:0};
+    };
+    const moveDrag=(e)=>{
+      if(!drag||!bitmap)return;
+      e.preventDefault();
+      const p=pos(e);
+      if(drag.mode==='new'){
+        let x=Math.max(0,Math.min(p.x,bitmap.width)),y=Math.max(0,Math.min(p.y,bitmap.height));
+        let w=Math.abs(x-drag.sx),h=Math.abs(y-drag.sy);
+        let rx=Math.min(drag.sx,x),ry=Math.min(drag.sy,y);
+        if(ratio>0){
+          if(w/h>ratio)w=h*ratio;else h=w/ratio;
+          rx=Math.min(drag.sx,Math.max(0,Math.min(bitmap.width-w,drag.sx+(x>=drag.sx?0:-w))));
+          ry=Math.min(drag.sy,Math.max(0,Math.min(bitmap.height-h,drag.sy+(y>=drag.sy?0:-h))));
+        }
+        rect={x:rx,y:ry,w:Math.max(1,w),h:Math.max(1,h)};
+      } else if(drag.mode==='move'&&drag.orig){
+        const dx=p.x-drag.sx,dy=p.y-drag.sy;
+        rect={...drag.orig,x:Math.max(0,Math.min(bitmap.width-drag.orig.w,drag.orig.x+dx)),y:Math.max(0,Math.min(bitmap.height-drag.orig.h,drag.orig.y+dy))};
+      } else if(drag.orig){
+        const o=drag.orig,dx=p.x-drag.sx,dy=p.y-drag.sy;
+        let {x,y,w,h}=o;
+        if(drag.mode.includes('e'))w=o.w+dx;
+        if(drag.mode.includes('s'))h=o.h+dy;
+        if(drag.mode.includes('w')){x=o.x+dx;w=o.w-dx;}
+        if(drag.mode.includes('n')){y=o.y+dy;h=o.h-dy;}
+        w=Math.max(10,Math.min(bitmap.width-x,w));h=Math.max(10,Math.min(bitmap.height-y,h));
+        x=Math.max(0,Math.min(bitmap.width-10,x));y=Math.max(0,Math.min(bitmap.height-10,y));
+        if(ratio>0){
+          if(drag.mode==='se'||drag.mode==='nw'||drag.mode==='ne'||drag.mode==='sw'){
+            if(w/h>ratio)w=h*ratio;else h=w/ratio;
+          }
+        }
+        rect={x,y,w,h};
+      }
+      draw();
+    };
+    const endDrag=()=>{drag=null;};
+    stage.addEventListener('pointerdown',startDrag);
+    stage.addEventListener('pointermove',moveDrag);
+    window.addEventListener('pointerup',endDrag);
+    stage.addEventListener('touchstart',startDrag,{passive:false});
+    stage.addEventListener('touchmove',moveDrag,{passive:false});
+    stage.addEventListener('touchend',endDrag);
     fileInput.addEventListener('change',async()=>{
-      button.disabled=true;
+      button.disabled=true;rect=null;
       if(bitmap)bitmap.close?.();
       const file=fileInput.files?.[0];if(!file)return;
-      try{bitmap=await createImageBitmap(file);wEl.value=Math.min(300,bitmap.width);hEl.value=Math.min(300,bitmap.height);xEl.value=0;yEl.value=0;redraw();}
+      try{
+        bitmap=await createImageBitmap(file);
+        const maxW=800,s=Math.min(1,maxW/bitmap.width);
+        stage.width=Math.round(bitmap.width*s);stage.height=Math.round(bitmap.height*s);
+        const w=Math.min(bitmap.width,bitmap.width*0.8),h=ratio>0?w/ratio:Math.min(bitmap.height,bitmap.height*0.8);
+        rect={x:(bitmap.width-w)/2,y:(bitmap.height-h)/2,w,h};
+        draw();
+      }
       catch{status.textContent='This image format is not supported by this browser.';}
     });
-    [xEl,yEl,wEl,hEl].forEach(el=>el.addEventListener('input',redraw));
     button.addEventListener('click',()=>{
-      if(!bitmap)return;redraw();
+      if(!bitmap||!rect)return;
+      draw();
       const mime=document.getElementById('cropFormat').value;
-      canvas.toBlob(blob=>{if(!blob){status.textContent='Crop failed: unsupported output format.';return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);const base=(fileInput.files[0].name||'crop').replace(/\.[^.]+$/,'');a.download=base+'-cropped'+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);status.textContent='Cropped image downloaded.'},mime,0.92);
+      preview.toBlob(blob=>{if(!blob){status.textContent='Crop failed: unsupported output format.';return}const a=document.createElement('a');a.href=URL.createObjectURL(blob);const base=(fileInput.files[0].name||'crop').replace(/\.[^.]+$/,'');a.download=base+'-cropped'+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);status.textContent='Cropped image downloaded.'},mime,0.92);
     });
   } else if (type === 'percent-calc') {
     window.calcPercent=()=>{
