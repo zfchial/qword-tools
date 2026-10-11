@@ -660,6 +660,26 @@ function setupTool(type) {
     const audioInput=document.getElementById('mp3File'),coverInput=document.getElementById('coverFile'),button=document.getElementById('convertMp3'),status=document.getElementById('mp3Status');
     audioInput.addEventListener('change',()=>{const f=audioInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to convert '+f.name});
     button.addEventListener('click',()=>{const file=audioInput.files?.[0];if(!file)return;const form=new FormData();form.append('audio',file);if(coverInput.files?.[0])form.append('cover',coverInput.files[0]);form.append('size',document.getElementById('videoSize').value);convertWithProgress('mp3',button,status,(onUpload)=>uploadWithProgress('/api/convert/mp3-mp4',form,onUpload),file.name.replace(/\.mp3$/i,'')+'.mp4','MP4 conversion complete.')});
+  } else if (type === 'mp4-gif') {
+    const fileInput=document.getElementById('gifFile'),button=document.getElementById('convertGif'),status=document.getElementById('gifStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to convert '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const q='?start='+encodeURIComponent(Math.max(0,Number(document.getElementById('gifStart').value)||0))+'&duration='+encodeURIComponent(Math.min(10,Math.max(1,Number(document.getElementById('gifDuration').value)||3)))+'&width='+encodeURIComponent(document.getElementById('gifWidth').value)+'&fps='+encodeURIComponent(document.getElementById('gifFps').value);convertWithProgress('gif',button,status,(onUpload)=>uploadWithProgress('/api/convert/mp4-gif'+q,file,onUpload,'video/mp4'),file.name.replace(/\.mp4$/i,'')+'.gif','GIF conversion complete.')});
+  } else if (type === 'mp4-thumbnail') {
+    const fileInput=document.getElementById('thumbFile'),button=document.getElementById('convertThumb'),status=document.getElementById('thumbStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to capture from '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const at=Math.max(0,Number(document.getElementById('thumbAt').value)||0);convertWithProgress('thumb',button,status,(onUpload)=>uploadWithProgress('/api/convert/mp4-thumbnail?at='+encodeURIComponent(at),file,onUpload,'video/mp4'),file.name.replace(/\.mp4$/i,'')+'-thumb.png','Thumbnail extracted.')});
+  } else if (type === 'audio-convert') {
+    const fileInput=document.getElementById('audioFile'),button=document.getElementById('convertAudio'),status=document.getElementById('audioStatus');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>50*1024*1024;status.textContent=!f?'':f.size>50*1024*1024?'File exceeds 50 MB.':'Ready to convert '+f.name});
+    button.addEventListener('click',()=>{const file=fileInput.files?.[0];if(!file)return;const format=document.getElementById('audioFormat').value,form=new FormData();form.append('audio',file);form.append('format',format);const base=file.name.replace(/\.[^.]+$/,'');convertWithProgress('audio',button,status,(onUpload)=>uploadWithProgress('/api/convert/audio',form,onUpload),base+'.'+format,'Audio conversion complete.')});
+  } else if (type === 'pdf-merge') {
+    const fileInput=document.getElementById('mergeFiles'),button=document.getElementById('convertMerge'),status=document.getElementById('mergeStatus');
+    fileInput.addEventListener('change',()=>{const n=fileInput.files?.length||0;button.disabled=n<2||n>10;status.textContent=!n?'':n<2?'Select at least 2 PDFs.':n>10?'Select no more than 10 PDFs.':n+' PDF(s) selected.'});
+    button.addEventListener('click',()=>{const files=[...(fileInput.files||[])];if(files.length<2)return;const form=new FormData();files.slice(0,10).forEach((f)=>form.append('files',f));convertWithProgress('merge',button,status,(onUpload)=>uploadWithProgress('/api/convert/pdf-merge',form,onUpload),'qword-merged.pdf','PDFs merged.')});
+  } else if (type === 'images-pdf') {
+    const fileInput=document.getElementById('imgPdfFiles'),button=document.getElementById('convertImgPdf'),status=document.getElementById('imgpdfStatus');
+    fileInput.addEventListener('change',()=>{const n=fileInput.files?.length||0;button.disabled=!n||n>20;status.textContent=!n?'':n>20?'Select no more than 20 images.':n+' image(s) selected.'});
+    button.addEventListener('click',()=>{const files=[...(fileInput.files||[])];if(!files.length)return;const form=new FormData();files.slice(0,20).forEach((f)=>form.append('images',f));convertWithProgress('imgpdf',button,status,(onUpload)=>uploadWithProgress('/api/convert/images-pdf',form,onUpload),'qword-images.pdf','PDF created.')});
   } else if (type === 'aspect-ratio') {
     const wIn = document.getElementById('wIn');
     const hIn = document.getElementById('hIn');
@@ -675,5 +695,133 @@ function setupTool(type) {
       }
     };
     calcRatio('w');
+  } else if (type === 'meta-tag') {
+    window.genMeta = () => {
+      const title=document.getElementById('metaTitle').value.trim(),desc=document.getElementById('metaDesc').value.trim(),url=document.getElementById('metaUrl').value.trim(),kw=document.getElementById('metaKeywords').value.trim(),warn=document.getElementById('metaWarn');
+      const warns=[];
+      if(title.length>60)warns.push('Title is '+title.length+' chars (aim under 60).');
+      if(desc.length>160)warns.push('Description is '+desc.length+' chars (aim under 160).');
+      warn.textContent=warns.join(' ');
+      const esc=(s)=>s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      let out='';
+      if(title)out+='<title>'+esc(title)+'</title>\n<meta name="title" content="'+esc(title)+'">\n';
+      if(desc)out+='<meta name="description" content="'+esc(desc)+'">\n';
+      if(kw)out+='<meta name="keywords" content="'+esc(kw)+'">\n';
+      out+='<meta name="robots" content="index, follow">\n';
+      if(url){out+='<link rel="canonical" href="'+esc(url)+'">\n<meta property="og:url" content="'+esc(url)+'">\n';}
+      if(title)out+='<meta property="og:title" content="'+esc(title)+'">\n<meta name="twitter:title" content="'+esc(title)+'">\n';
+      if(desc)out+='<meta property="og:description" content="'+esc(desc)+'">\n<meta name="twitter:description" content="'+esc(desc)+'">\n';
+      out+='<meta property="og:type" content="website">\n<meta name="twitter:card" content="summary_large_image">\n';
+      document.getElementById('output').value=out;
+    };
+  } else if (type === 'keyword-density') {
+    window.checkDensity = () => {
+      const text=document.getElementById('input').value,out=document.getElementById('densityOut');
+      const stop=new Set('a,an,the,and,or,but,if,then,else,for,to,of,in,on,at,by,with,from,as,is,are,was,were,be,been,being,have,has,had,do,does,did,will,would,can,could,should,it,its,this,that,these,those,i,you,he,she,we,they,them,his,her,our,your,their,my,me,him,us,not,no,so,very,just,than,too,also,into,over,after,before,between,through,about,yang,dan,atau,dengan,dari,untuk,pada,adalah,itu,ini,yang,tidak,akan'.split(','));
+      const words=text.toLowerCase().replace(/[^a-z0-9'\s-]/g,' ').split(/\s+/).filter((w)=>w.length>2&&!stop.has(w));
+      if(!words.length){out.innerHTML='<p>No keywords found. Paste a longer text.</p>';return;}
+      const one={},two={},three={};
+      words.forEach((w)=>{one[w]=(one[w]||0)+1;});
+      for(let i=0;i<words.length-1;i++){const p=words[i]+' '+words[i+1];two[p]=(two[p]||0)+1;}
+      for(let i=0;i<words.length-2;i++){const p=words[i]+' '+words[i+1]+' '+words[i+2];three[p]=(three[p]||0)+1;}
+      const total=words.length;
+      const top=(obj,n)=>Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,n);
+      const row=(k,c)=>'<tr><td style="padding:6px 10px;border-bottom:1px solid var(--line)">'+k.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--line)">'+c+'</td><td style="padding:6px 10px;border-bottom:1px solid var(--line)">'+(c/total*100).toFixed(2)+'%</td></tr>';
+      let html='<p><strong>'+total+'</strong> keywords analyzed.</p>';
+      [['Top words',top(one,10)],['Top 2-word phrases',top(two,5)],['Top 3-word phrases',top(three,5)]].forEach(([h,rows])=>{if(!rows.length)return;html+='<h4 style="margin:12px 0 4px">'+h+'</h4><table style="border-collapse:collapse;font-size:13px"><tr><th style="text-align:left;padding:6px 10px">Keyword</th><th style="text-align:left;padding:6px 10px">Count</th><th style="text-align:left;padding:6px 10px">Density</th></tr>'+rows.map(([k,c])=>row(k,c)).join('')+'</table>';});
+      out.innerHTML=html;
+    };
+  } else if (type === 'readability') {
+    window.checkReadability = () => {
+      const text=document.getElementById('input').value,out=document.getElementById('readOut');
+      const words=(text.match(/[A-Za-z0-9'-]+/g)||[]);
+      const sentences=(text.match(/[^.!?]+[.!?]+/g)||[]).length||(words.length?1:0);
+      const countSyllables=(w)=>{w=w.toLowerCase().replace(/[^a-z]/g,'');if(!w)return 0;if(w.length<=3)return 1;const m=w.replace(/(?:[^laeiouy]|ed|es|e)$/,'').replace(/^y/,'').match(/[aeiouy]{1,2}/g);return m?m.length:1;};
+      const syllables=words.reduce((n,w)=>n+countSyllables(w),0);
+      if(!words.length){out.innerHTML='<p>Paste some text to analyze.</p>';return;}
+      const wps=words.length/sentences,spw=syllables/words.length;
+      const ease=206.835-1.015*wps-84.6*spw,grade=0.39*wps+11.8*spw-15.59;
+      const label=ease>=90?'Very easy':ease>=80?'Easy':ease>=70?'Fairly easy':ease>=60?'Plain English':ease>=50?'Fairly difficult':ease>=30?'Difficult':'Very difficult';
+      out.innerHTML='<table style="border-collapse:collapse;font-size:14px"><tr><td style="padding:6px 12px"><strong>Flesch Reading Ease</strong></td><td style="padding:6px 12px">'+ease.toFixed(1)+' ('+label+')</td></tr><tr><td style="padding:6px 12px"><strong>Grade level</strong></td><td style="padding:6px 12px">'+Math.max(0,grade).toFixed(1)+'</td></tr><tr><td style="padding:6px 12px"><strong>Words</strong></td><td style="padding:6px 12px">'+words.length+'</td></tr><tr><td style="padding:6px 12px"><strong>Sentences</strong></td><td style="padding:6px 12px">'+sentences+'</td></tr><tr><td style="padding:6px 12px"><strong>Syllables</strong></td><td style="padding:6px 12px">'+syllables+'</td></tr><tr><td style="padding:6px 12px"><strong>Words per sentence</strong></td><td style="padding:6px 12px">'+wps.toFixed(1)+'</td></tr></table>';
+    };
+  } else if (type === 'regex-tester') {
+    const escHtml=(s)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const run=()=>{
+      const pattern=document.getElementById('regexPattern').value,flags=document.getElementById('regexFlags').value.replace(/[^dgimsuvy]/g,''),text=document.getElementById('input').value,err=document.getElementById('regexError'),out=document.getElementById('regexOut'),groups=document.getElementById('regexGroups'),count=document.getElementById('regexCount');
+      let re;
+      try{re=new RegExp(pattern,flags.includes('g')?flags:flags+'g');err.textContent='';}
+      catch(e){err.textContent='Invalid regex: '+e.message;out.textContent=text;groups.textContent='';count.textContent='0';return;}
+      const matches=[...text.matchAll(re)];
+      count.textContent=String(matches.length);
+      if(!matches.length){out.textContent=text||'(no matches)';groups.textContent='';return;}
+      let html='',last=0;
+      matches.forEach((m)=>{const i=m.index??0;html+=escHtml(text.slice(last,i))+'<mark style="background:#365314;color:#ecfccb;border-radius:3px;padding:0 2px">'+escHtml(m[0])+'</mark>';last=i+m[0].length;});
+      out.innerHTML=html+escHtml(text.slice(last));
+      const first=matches[0];
+      groups.innerHTML=first.length>1?first.slice(1).map((g,i)=>'Group '+(i+1)+': '+(g===undefined?'<em>no match</em>':escHtml(g))).join('<br>'):'(no capture groups)';
+    };
+    ['regexPattern','regexFlags','input'].forEach((id)=>document.getElementById(id).addEventListener('input',run));
+    run();
+  } else if (type === 'text-diff') {
+    window.runDiff = () => {
+      const norm=(s)=>document.getElementById('diffWs').checked?s.split('\n').map((l)=>l.trim()):s.split('\n');
+      const a=norm(document.getElementById('diffA').value),b=norm(document.getElementById('diffB').value);
+      const n=a.length,m=b.length,dp=Array.from({length:n+1},()=>new Array(m+1).fill(0));
+      for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)dp[i][j]=a[i]===b[j]?dp[i+1][j+1]+1:Math.max(dp[i+1][j],dp[i][j+1]);
+      let i=0,j=0,added=0,removed=0,html='';
+      const esc=(s)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')||' ';
+      while(i<n&&j<m){if(a[i]===b[j]){html+='<div style="padding:4px 12px;color:var(--muted)">  '+esc(a[i])+'</div>';i++;j++;}else if(dp[i+1][j]>=dp[i][j+1]){html+='<div style="padding:4px 12px;background:#3f1d1d;color:#fecaca">- '+esc(a[i])+'</div>';removed++;i++;}else{html+='<div style="padding:4px 12px;background:#14532d;color:#bbf7d0">+ '+esc(b[j])+'</div>';added++;j++;}}
+      while(i<n){html+='<div style="padding:4px 12px;background:#3f1d1d;color:#fecaca">- '+esc(a[i])+'</div>';removed++;i++;}
+      while(j<m){html+='<div style="padding:4px 12px;background:#14532d;color:#bbf7d0">+ '+esc(b[j])+'</div>';added++;j++;}
+      document.getElementById('diffOut').innerHTML=html;
+      document.getElementById('diffSummary').textContent=added+' line(s) added, '+removed+' line(s) removed.';
+    };
+  } else if (type === 'markdown-preview') {
+    const escHtml=(s)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const inline=(s)=>escHtml(s).replace(/`([^`]+)`/g,'<code style="background:var(--hover);padding:1px 5px;border-radius:4px">$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|\W)\*([^*\n]+)\*/g,'$1<em>$2</em>').replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');
+    window.renderMd = () => {
+      const lines=document.getElementById('mdIn').value.split('\n'),out=document.getElementById('mdOut');
+      let html='',inList='',inCode=false,inTable=false;
+      const closeList=()=>{if(inList){html+='</'+inList+'>';inList='';}};
+      const closeTable=()=>{if(inTable){html+='</tbody></table>';inTable=false;}};
+      for(const line of lines){
+        if(line.trim().startsWith('```')){closeList();closeTable();html+=inCode?'</code></pre>':'<pre style="background:var(--hover);padding:10px;border-radius:8px;overflow:auto"><code>';inCode=!inCode;continue;}
+        if(inCode){html+=escHtml(line)+'\n';continue;}
+        if(/^\|.*\|$/.test(line.trim())&&line.includes('---')){continue;}
+        const tableRow=line.trim().match(/^\|(.*)\|$/);
+        if(tableRow&&lines.some((l)=>/^\|[\s|:-]+\|$/.test(l.trim()))){closeList();if(!inTable){html+='<table style="border-collapse:collapse;margin:8px 0"><tbody>';inTable=true;}html+='<tr>'+tableRow[1].split('|').map((c)=>'<td style="border:1px solid var(--line);padding:6px 10px">'+inline(c.trim())+'</td>').join('')+'</tr>';continue;}
+        closeTable();
+        const h=line.match(/^(#{1,6})\s+(.*)/);
+        if(h){closeList();const lvl=h[1].length;html+='<h'+lvl+' style="margin:10px 0 6px">'+inline(h[2])+'</h'+lvl+'>';continue;}
+        if(/^\s*---+\s*$/.test(line)){closeList();html+='<hr style="border-color:var(--line);margin:10px 0">';continue;}
+        const ul=line.match(/^\s*[-*]\s+(.*)/),ol=line.match(/^\s*\d+[.)]\s+(.*)/);
+        if(ul||ol){const tag=ul?'ul':'ol';if(inList!==tag){closeList();html+='<'+tag+' style="margin:6px 0;padding-left:22px">';inList=tag;}html+='<li>'+inline((ul||ol)[1])+'</li>';continue;}
+        closeList();
+        const quote=line.match(/^\s*>\s?(.*)/);
+        if(quote){html+='<blockquote style="border-left:3px solid var(--brand);margin:8px 0;padding:4px 12px;color:var(--muted)">'+inline(quote[1])+'</blockquote>';continue;}
+        if(!line.trim()){html+='';continue;}
+        html+='<p style="margin:6px 0">'+inline(line)+'</p>';
+      }
+      closeList();closeTable();
+      out.innerHTML=html||'<p style="color:var(--muted)">Preview appears here.</p>';
+    };
+    window.copyMd = async () => {try{await navigator.clipboard.writeText(document.getElementById('mdOut').innerHTML);alert('HTML copied.')}catch(e){alert('Copy failed.')}};
+    window.downloadMd = () => {const blob=new Blob(['<!DOCTYPE html><html><head><meta charset="utf-8"><title>Export</title></head><body>'+document.getElementById('mdOut').innerHTML+'</body></html>'],{type:'text/html'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='markdown-export.html';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);};
+    document.getElementById('mdIn').addEventListener('input',()=>window.renderMd());
+    window.renderMd();
+  } else if (type === 'xml-formatter') {
+    const input=document.getElementById('input'),output=document.getElementById('output'),err=document.getElementById('errorMsg');
+    window.formatXml = () => {
+      err.textContent='';
+      try{
+        const doc=new DOMParser().parseFromString(input.value,'text/xml');
+        if(doc.getElementsByTagName('parsererror').length)throw Error(doc.getElementsByTagName('parsererror')[0].textContent);
+        const xs=new XMLSerializer().serializeToString(doc);
+        const pretty=xs.replace(/>\s*</g,'>\n<').split('\n');
+        let depth=0;
+        output.value=pretty.map((line)=>{const t=line.trim();if(/^<\//.test(t))depth=Math.max(0,depth-1);const ind='  '.repeat(depth);if(/^<[^!?/][^>]*[^/]>$/.test(t))depth++;return ind+t;}).join('\n');
+      }catch(e){err.textContent='Invalid XML: '+e.message;}
+    };
+    window.minifyXml = () => {err.textContent='';try{const doc=new DOMParser().parseFromString(input.value,'text/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('parse error');output.value=new XMLSerializer().serializeToString(doc).replace(/>\s+</g,'><').trim();}catch(e){err.textContent='Invalid XML: '+e.message;}};
   }
 }

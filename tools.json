@@ -536,5 +536,221 @@
         "a": "Conversion is approximate; complex formatting and page layouts may change."
       }
     ]
+  },
+  {
+    "slug": "mp4-to-gif-converter",
+    "name": "MP4 to GIF Converter",
+    "category": "Converters & Math",
+    "description": "Turn an MP4 clip into an animated GIF with custom start time, length, and quality.",
+    "type": "mp4-gif",
+    "seoText": "Convert MP4 video clips into animated GIFs. Choose the start second, clip length up to 10 seconds, width, and frame rate. Files are processed on the server; maximum upload is 100 MB.",
+    "faq": [
+      {
+        "q": "How long can the GIF be?",
+        "a": "Up to 10 seconds per conversion to keep file sizes reasonable."
+      },
+      {
+        "q": "Are uploaded videos stored?",
+        "a": "Temporary processing files are deleted when conversion finishes."
+      }
+    ]
+  },
+  {
+    "slug": "mp4-thumbnail-extractor",
+    "name": "MP4 Thumbnail Extractor",
+    "category": "Converters & Math",
+    "description": "Grab a still PNG frame from any second of an MP4 video.",
+    "type": "mp4-thumbnail",
+    "seoText": "Extract a PNG thumbnail image from an MP4 video at any timestamp. Files are processed on the server; maximum upload is 100 MB.",
+    "faq": [
+      {
+        "q": "What image format is produced?",
+        "a": "A PNG still frame captured at the chosen second."
+      },
+      {
+        "q": "What if the timestamp is past the video end?",
+        "a": "FFmpeg captures the nearest available frame."
+      }
+    ]
+  },
+  {
+    "slug": "audio-format-converter",
+    "name": "Audio Format Converter",
+    "category": "Converters & Math",
+    "description": "Convert audio between MP3, WAV, and OGG formats.",
+    "type": "audio-convert",
+    "seoText": "Convert audio files between MP3, WAV, and OGG. WAV uses lossless PCM, MP3 uses 192 kbps, OGG uses quality level 5. Maximum upload is 50 MB; files are processed on the server.",
+    "faq": [
+      {
+        "q": "Which formats are supported?",
+        "a": "MP3, WAV, and OGG in both directions."
+      },
+      {
+        "q": "Is WAV conversion lossless?",
+        "a": "WAV output uses uncompressed PCM audio."
+      }
+    ]
+  },
+  {
+    "slug": "pdf-merger",
+    "name": "PDF Merger",
+    "category": "Converters & Math",
+    "description": "Combine 2 to 10 PDF files into one document in order.",
+    "type": "pdf-merge",
+    "seoText": "Merge multiple PDF files into a single document. Select 2 to 10 PDFs up to 25 MB each. Encrypted PDFs are not supported. Files are processed on the server and deleted afterward.",
+    "faq": [
+      {
+        "q": "How many PDFs can I merge?",
+        "a": "Between 2 and 10 files per merge."
+      },
+      {
+        "q": "Are merged files stored?",
+        "a": "Temporary files are deleted when merging finishes."
+      }
+    ]
+  },
+  {
+    "slug": "image-to-pdf-converter",
+    "name": "Image to PDF Converter",
+    "category": "Converters & Math",
+    "description": "Turn up to 20 JPG, PNG, or WebP images into a single PDF.",
+    "type": "images-pdf",
+    "seoText": "Convert images into a PDF document, one image per page. Supports JPEG, PNG, and WebP up to 10 MB each, 20 images maximum. Files are processed on the server and deleted afterward.",
+    "faq": [
+      {
+        "q": "How are images laid out?",
+        "a": "One image per page, sized to fit while keeping proportions."
+      },
+      {
+        "q": "Is WebP supported?",
+        "a": "Yes. WebP images are converted internally before embedding."
+      }
+    ]
+  },
+  {
+    "slug": "meta-tag-generator",
+    "name": "Meta Tag Generator",
+    "category": "Text & Writing",
+    "description": "Generate SEO meta title, description, and Open Graph tags from page details.",
+    "type": "meta-tag",
+    "seoText": "Create HTML meta tags for SEO and social sharing: title, description, keywords, Open Graph, and Twitter Card tags. Everything runs in your browser; nothing is uploaded.",
+    "faq": [
+      {
+        "q": "Does it check tag length?",
+        "a": "Yes. It warns when titles exceed 60 characters or descriptions exceed 160."
+      },
+      {
+        "q": "Is my input sent anywhere?",
+        "a": "No. All generation happens locally in your browser."
+      }
+    ]
+  },
+  {
+    "slug": "keyword-density-checker",
+    "name": "Keyword Density Checker",
+    "category": "Text & Writing",
+    "description": "Analyze keyword frequency and density in any text or article.",
+    "type": "keyword-density",
+    "seoText": "Check keyword density for SEO: paste an article and see the most frequent words and phrases with counts and percentages. Runs entirely in your browser.",
+    "faq": [
+      {
+        "q": "What counts as a keyword?",
+        "a": "Single words plus two- and three-word phrases, excluding common stop words."
+      },
+      {
+        "q": "What density should I aim for?",
+        "a": "As a rough guide, 1 to 2 percent for a primary keyword; the tool shows the numbers so you can judge."
+      }
+    ]
+  },
+  {
+    "slug": "readability-analyzer",
+    "name": "Readability Analyzer",
+    "category": "Text & Writing",
+    "description": "Score text with Flesch Reading Ease, grade level, and sentence stats.",
+    "type": "readability",
+    "seoText": "Analyze reading difficulty with the Flesch Reading Ease score and Flesch-Kincaid grade level, plus word, sentence, and syllable counts. Runs entirely in your browser.",
+    "faq": [
+      {
+        "q": "What is a good Flesch score?",
+        "a": "60 to 70 is plain English; higher means easier to read."
+      },
+      {
+        "q": "Is my text uploaded?",
+        "a": "No. Analysis happens locally in your browser."
+      }
+    ]
+  },
+  {
+    "slug": "regex-tester",
+    "name": "Regex Tester",
+    "category": "Developer Tools",
+    "description": "Test JavaScript regular expressions with live match highlighting.",
+    "type": "regex-tester",
+    "seoText": "Test regular expressions live against sample text with match highlighting, flags, capture groups, and match counts. Runs entirely in your browser.",
+    "faq": [
+      {
+        "q": "Which regex flavor is used?",
+        "a": "JavaScript RegExp, the same engine browsers use."
+      },
+      {
+        "q": "Does it show capture groups?",
+        "a": "Yes. Numbered groups for the first match are listed."
+      }
+    ]
+  },
+  {
+    "slug": "text-diff-checker",
+    "name": "Text Diff Checker",
+    "category": "Developer Tools",
+    "description": "Compare two texts line by line and highlight added and removed lines.",
+    "type": "text-diff",
+    "seoText": "Compare two versions of a text and see added, removed, and unchanged lines side by side. Comparison runs entirely in your browser; nothing is uploaded.",
+    "faq": [
+      {
+        "q": "Can I ignore whitespace?",
+        "a": "Yes. An option ignores leading and trailing whitespace differences."
+      },
+      {
+        "q": "Is there a size limit?",
+        "a": "It handles thousands of lines comfortably in the browser."
+      }
+    ]
+  },
+  {
+    "slug": "markdown-preview",
+    "name": "Markdown Preview",
+    "category": "Developer Tools",
+    "description": "Write Markdown and preview formatted HTML live, then copy or download it.",
+    "type": "markdown-preview",
+    "seoText": "Live Markdown editor with formatted preview, HTML copy, and file download. Supports headings, lists, tables, code blocks, and links. Runs entirely in your browser.",
+    "faq": [
+      {
+        "q": "Can I download the result?",
+        "a": "Yes. Export the preview as an HTML file or copy the generated HTML."
+      },
+      {
+        "q": "Is my Markdown uploaded?",
+        "a": "No. Everything renders locally in your browser."
+      }
+    ]
+  },
+  {
+    "slug": "xml-formatter",
+    "name": "XML Formatter and Validator",
+    "category": "Developer Tools",
+    "description": "Format, validate, and minify XML with error messages.",
+    "type": "xml-formatter",
+    "seoText": "Format and validate XML with pretty-printing, minification, and clear parse error messages. Runs entirely in your browser; nothing is uploaded.",
+    "faq": [
+      {
+        "q": "Does it validate XML?",
+        "a": "Yes. Malformed XML produces the parser error message."
+      },
+      {
+        "q": "Can it minify?",
+        "a": "Yes. One click collapses formatted XML to a single line."
+      }
+    ]
   }
 ]

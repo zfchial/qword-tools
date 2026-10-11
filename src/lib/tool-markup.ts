@@ -392,6 +392,69 @@ export function renderToolInteractive(tool: { type: string }) {
         <div><label>Height (px)</label><input type="number" id="hIn" value="1080" oninput="calcRatio('h')" style="width:100%"></div>
       </div>
     `;
+  } else if (type === 'mp4-gif') {
+    return `<div class="field"><label for="gifFile">Choose MP4 video (max 100 MB)</label><input id="gifFile" type="file" accept="video/mp4,.mp4"></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px"><div class="field"><label for="gifStart">Start (sec)</label><input id="gifStart" type="number" min="0" max="3600" value="0"></div><div class="field"><label for="gifDuration">Length (sec)</label><input id="gifDuration" type="number" min="1" max="10" value="3"></div><div class="field"><label for="gifWidth">Width (px)</label><select id="gifWidth"><option value="240">240</option><option value="320" selected>320</option><option value="480">480</option></select></div><div class="field"><label for="gifFps">Frame rate</label><select id="gifFps"><option value="5">5 fps</option><option value="10" selected>10 fps</option><option value="15">15 fps</option></select></div></div><button id="convertGif" disabled>Convert to GIF</button><div class="convert-progress" id="gifProgress" hidden><div class="convert-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="convert-progress-fill" id="gifProgressFill"></div></div><p class="convert-progress-text" id="gifProgressText">Ready.</p></div><p id="gifStatus" aria-live="polite"></p><p>Files are uploaded to the server for conversion. GIF clips are limited to 10 seconds.</p>`;
+  } else if (type === 'mp4-thumbnail') {
+    return `<div class="field"><label for="thumbFile">Choose MP4 video (max 100 MB)</label><input id="thumbFile" type="file" accept="video/mp4,.mp4"></div><div class="field"><label for="thumbAt">Capture at (sec)</label><input id="thumbAt" type="number" min="0" max="3600" step="0.5" value="1"></div><button id="convertThumb" disabled>Extract thumbnail</button><div class="convert-progress" id="thumbProgress" hidden><div class="convert-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="convert-progress-fill" id="thumbProgressFill"></div></div><p class="convert-progress-text" id="thumbProgressText">Ready.</p></div><p id="thumbStatus" aria-live="polite"></p><p>Files are uploaded to the server. A PNG frame is captured at the chosen timestamp.</p>`;
+  } else if (type === 'audio-convert') {
+    return `<div class="field"><label for="audioFile">Choose audio (MP3, WAV, or OGG, max 50 MB)</label><input id="audioFile" type="file" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg"></div><div class="field"><label for="audioFormat">Output format</label><select id="audioFormat"><option value="mp3">MP3</option><option value="wav">WAV</option><option value="ogg">OGG</option></select></div><button id="convertAudio" disabled>Convert audio</button><div class="convert-progress" id="audioProgress" hidden><div class="convert-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="convert-progress-fill" id="audioProgressFill"></div></div><p class="convert-progress-text" id="audioProgressText">Ready.</p></div><p id="audioStatus" aria-live="polite"></p><p>Files are uploaded to the server for conversion. Temporary files are deleted after processing.</p>`;
+  } else if (type === 'pdf-merge') {
+    return `<div class="field"><label for="mergeFiles">Choose 2 to 10 PDF files</label><input id="mergeFiles" type="file" accept=".pdf,application/pdf" multiple></div><button id="convertMerge" disabled>Merge PDFs</button><div class="convert-progress" id="mergeProgress" hidden><div class="convert-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="convert-progress-fill" id="mergeProgressFill"></div></div><p class="convert-progress-text" id="mergeProgressText">Ready.</p></div><p id="mergeStatus" aria-live="polite"></p><p>Files are merged in selection order. Encrypted PDFs are not supported.</p>`;
+  } else if (type === 'images-pdf') {
+    return `<div class="field"><label for="imgPdfFiles">Choose up to 20 images (JPG, PNG, WebP)</label><input id="imgPdfFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple></div><button id="convertImgPdf" disabled>Create PDF</button><div class="convert-progress" id="imgpdfProgress" hidden><div class="convert-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="convert-progress-fill" id="imgpdfProgressFill"></div></div><p class="convert-progress-text" id="imgpdfProgressText">Ready.</p></div><p id="imgpdfStatus" aria-live="polite"></p><p>One image per page, in selection order. Files are uploaded to the server and deleted after processing.</p>`;
+  } else if (type === 'meta-tag') {
+    return `
+      <div class="field"><label>Page title</label><input id="metaTitle" type="text" placeholder="My Awesome Page" style="width:100%"></div>
+      <div class="field"><label>Page description</label><textarea id="metaDesc" rows="3" placeholder="A short summary of the page..."></textarea></div>
+      <div class="field"><label>Page URL</label><input id="metaUrl" type="text" placeholder="https://example.com/page" style="width:100%"></div>
+      <div class="field"><label>Keywords (comma separated)</label><input id="metaKeywords" type="text" placeholder="tools, converter, online" style="width:100%"></div>
+      <div class="actions"><button onclick="genMeta()">Generate tags</button><button class="btn-secondary" onclick="clearField('metaTitle');clearField('metaDesc');clearField('metaUrl');clearField('metaKeywords');document.getElementById('output').value=''">Clear</button></div>
+      <p id="metaWarn" style="color:#b45309;font-size:13px;margin:8px 0;"></p>
+      <div class="field" style="margin-top:8px"><label>Result</label><textarea id="output" rows="10" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Tags</button>
+    `;
+  } else if (type === 'keyword-density') {
+    return `
+      <div class="field"><label>Article text</label><textarea id="input" rows="8" placeholder="Paste your article here..."></textarea></div>
+      <div class="actions"><button onclick="checkDensity()">Analyze</button><button class="btn-secondary" onclick="clearField('input');document.getElementById('densityOut').innerHTML=''">Clear</button></div>
+      <div id="densityOut" style="margin-top:12px"></div>
+    `;
+  } else if (type === 'readability') {
+    return `
+      <div class="field"><label>Text to analyze</label><textarea id="input" rows="8" placeholder="Paste text here..."></textarea></div>
+      <div class="actions"><button onclick="checkReadability()">Analyze</button><button class="btn-secondary" onclick="clearField('input');document.getElementById('readOut').innerHTML=''">Clear</button></div>
+      <div id="readOut" style="margin-top:12px"></div>
+    `;
+  } else if (type === 'regex-tester') {
+    return `
+      <div class="field"><label>Pattern</label><input id="regexPattern" type="text" placeholder="\\b\\w+@\\w+\\.\\w+\\b" style="width:100%;font-family:monospace"></div>
+      <div class="field"><label>Flags</label><input id="regexFlags" type="text" value="gi" style="width:100%;font-family:monospace"></div>
+      <p id="regexError" style="color:#ef4444;font-size:13px;margin:4px 0;"></p>
+      <div class="field"><label>Test text</label><textarea id="input" rows="6" placeholder="Paste text to test against..."></textarea></div>
+      <div class="field"><label>Matches (<span id="regexCount">0</span>)</label><div id="regexOut" style="white-space:pre-wrap;word-break:break-word;border:1px solid var(--line);border-radius:10px;padding:12px;min-height:80px"></div></div>
+      <div class="field"><label>Capture groups (first match)</label><div id="regexGroups" style="font-family:monospace;font-size:13px"></div></div>
+    `;
+  } else if (type === 'text-diff') {
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="field"><label>Original text</label><textarea id="diffA" rows="8" placeholder="Old version..."></textarea></div><div class="field"><label>New text</label><textarea id="diffB" rows="8" placeholder="New version..."></textarea></div></div>
+      <div class="field"><label style="display:flex;align-items:center;gap:8px"><input id="diffWs" type="checkbox" style="width:auto"> Ignore leading/trailing whitespace</label></div>
+      <div class="actions"><button onclick="runDiff()">Compare</button><button class="btn-secondary" onclick="clearField('diffA');clearField('diffB');document.getElementById('diffOut').innerHTML=''">Clear</button></div>
+      <p id="diffSummary" style="font-size:13px;margin:8px 0;"></p>
+      <div id="diffOut" style="font-family:monospace;font-size:13px;border:1px solid var(--line);border-radius:10px;overflow:hidden"></div>
+    `;
+  } else if (type === 'markdown-preview') {
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div class="field"><label>Markdown</label><textarea id="mdIn" rows="14" placeholder="# Hello&#10;&#10;Write **markdown** here..." style="font-family:monospace"></textarea></div><div class="field"><label>Preview</label><div id="mdOut" class="md-preview" style="border:1px solid var(--line);border-radius:10px;padding:12px;min-height:200px"></div></div></div>
+      <div class="actions" style="margin-top:12px"><button onclick="copyMd()">Copy HTML</button><button onclick="downloadMd()">Download HTML</button><button class="btn-secondary" onclick="clearField('mdIn');renderMd()">Clear</button></div>
+    `;
+  } else if (type === 'xml-formatter') {
+    return `
+      <div class="field"><label>XML Input</label><textarea id="input" rows="8" placeholder="<root><item>value</item></root>" style="font-family:monospace"></textarea></div>
+      <div class="actions"><button onclick="formatXml()">Format</button><button onclick="minifyXml()">Minify</button><button class="btn-secondary" onclick="clearField('input')">Clear</button></div>
+      <p id="errorMsg" style="color:#ef4444;font-size:13px;margin:8px 0;"></p>
+      <div class="field" style="margin-top:8px"><label>Result</label><textarea id="output" rows="10" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
   }
   return `<p>Tool interface ready.</p>`;
 }

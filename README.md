@@ -4,12 +4,16 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 
 ## Features
 
-- Search and filter 37 tools by category
+- Search and filter 49 tools by category
 - Responsive directory and individual tool pages
 - Light and dark themes based on the system appearance
 - Reduced-motion support and staggered list entrance animation
-- MP4 to MP3 audio extraction and MP3 to MP4 video creation (optional still cover image)
+- MP4 to MP3/GIF/thumbnail extraction and MP3 to MP4 video creation (optional still cover image)
+- Audio conversion between MP3, WAV, and OGG
 - DOCX to PDF and PDF to DOCX server-side conversion (Docker converter image required)
+- PDF merging and image-to-PDF creation
+- SEO helpers: meta tag generator, keyword density checker, readability analyzer
+- Developer helpers: regex tester, text diff checker, Markdown preview, XML formatter
 - Client-side processing for most utilities
 - MP4/DOCX/PDF/MP3 temporary files are removed after conversion
 - Static generation for tool pages, sitemap, and robots rules
@@ -21,8 +25,9 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 - TypeScript
 - Tailwind CSS 4
 - Node.js 22 or newer (Next.js 16 requires Node.js >=20.9)
-- FFmpeg and FFprobe are required for MP4/MP3 conversion
+- FFmpeg and FFprobe are required for MP4/MP3/audio conversion
 - Docker is required for DOCX/PDF conversion; build the converter image with `docker build -f Dockerfile.converter -t qword-doc-converter .` before starting the app
+- pdf-lib is an npm dependency used for PDF merging and image-to-PDF creation
 
 ## Getting started
 
@@ -71,9 +76,11 @@ The catalog is maintained in `tools.json`; the typed catalog in `src/lib/tools.t
 
 Most tools process data in the browser. File converters upload to the server:
 
-- MP4 video files: 100 MB limit for MP3 extraction.
+- MP4 video files: 100 MB limit for MP3/GIF/thumbnail extraction; GIF clips limited to 10 seconds.
 - MP3 audio files: 100 MB limit; optional cover images: 15 MB.
+- Audio files for format conversion: 50 MB limit (MP3, WAV, OGG).
 - DOCX and PDF documents: 50 MB limit.
+- PDF merge: 2 to 10 files, 25 MB each; image-to-PDF: up to 20 images, 10 MB each.
 - MP3-to-MP4 videos use a still cover image or plain background; PDF-to-DOCX conversion is approximate for complex layouts.
 - All conversion temporary files are deleted after processing. Do not upload confidential files.
 
