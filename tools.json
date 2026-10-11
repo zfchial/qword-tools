@@ -1000,5 +1000,23 @@
         "a": "100 MB per file."
       }
     ]
+  },
+  {
+    "slug": "temp-mail",
+    "name": "Temp Mail",
+    "category": "Developer Tools",
+    "description": "Generate a free temporary email address and read incoming messages instantly.",
+    "type": "temp-mail",
+    "seoText": "Free temporary email generator. Create a disposable mailbox, copy the address, and read incoming emails with auto-refreshing inbox.",
+    "faq": [
+      {
+        "q": "Can I receive real emails?",
+        "a": "Yes. The mailbox is real and can receive email from any sender, including verification codes."
+      },
+      {
+        "q": "How long does the mailbox last?",
+        "a": "Mailboxes are provided by the upstream mail service and expire on their side. Generate a new one anytime."
+      }
+    ]
   }
 ]

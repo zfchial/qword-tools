@@ -1220,5 +1220,58 @@ function setupTool(type) {
       const form=new FormData();form.append('file',file);
       xhr.send(form);
     });
+  } else if (type === 'temp-mail') {
+    const prefixInput=document.getElementById('tmPrefix'),newBtn=document.getElementById('tmNew'),refreshBtn=document.getElementById('tmRefresh'),addrInput=document.getElementById('tmAddr'),copyBtn=document.getElementById('tmCopy'),autoBox=document.getElementById('tmAuto'),status=document.getElementById('tmStatus'),list=document.getElementById('tmList'),view=document.getElementById('tmView');
+    let token='',timer=null;
+    const stop=()=>{if(timer){clearInterval(timer);timer=null;}};
+    const start=()=>{stop();if(autoBox.checked&&token)timer=setInterval(()=>loadInbox(true),15000);};
+    autoBox.addEventListener('change',start);
+    const esc=(s)=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    async function loadInbox(silent){
+      if(!token)return;
+      if(!silent)status.textContent='Checking inbox…';
+      try{
+        const res=await fetch('/api/tempmail/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token})});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok)throw Error(data.error||'Inbox failed ('+res.status+')');
+        const msgs=data.messages||[];
+        if(!msgs.length){list.innerHTML='<p style="color:#888">Inbox empty. Send an email to this address, then check again.</p>';if(!silent)status.textContent='No messages yet.';return;}
+        status.textContent=msgs.length+' message'+(msgs.length>1?'s':'')+'.';
+        list.innerHTML='';
+        msgs.forEach((m)=>{
+          const item=document.createElement('button');
+          item.type='button';
+          item.style.cssText='display:block;width:100%;text-align:left;padding:10px;border:1px solid #ddd;border-radius:8px;margin-bottom:6px;cursor:pointer;background:'+(m.seen?'transparent':'#f0f7ff');
+          item.innerHTML='<strong>'+esc(m.subject||'(no subject)')+'</strong><br><small>'+esc(m.from)+' — '+esc(m.intro||'')+'</small>';
+          item.addEventListener('click',()=>readMsg(m.id));
+          list.appendChild(item);
+        });
+      }catch(err){if(!silent)status.textContent=String(err.message||err);}
+    }
+    async function readMsg(id){
+      view.innerHTML='<p>Loading message…</p>';
+      try{
+        const res=await fetch('/api/tempmail/read',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,id})});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok)throw Error(data.error||'Read failed ('+res.status+')');
+        const body=data.text?'<pre style="white-space:pre-wrap;word-break:break-word">'+esc(data.text)+'</pre>':'<p style="color:#888">(no text body)</p>';
+        view.innerHTML='<div style="border:1px solid #ddd;border-radius:8px;padding:12px"><p><strong>From:</strong> '+esc(data.from)+'</p><p><strong>Subject:</strong> '+esc(data.subject||'(no subject)')+'</p><hr style="margin:8px 0">'+body+'</div>';
+      }catch(err){view.innerHTML='<p>'+esc(String(err.message||err))+'</p>';}
+    }
+    newBtn.addEventListener('click',()=>{
+      stop();view.innerHTML='';list.innerHTML='';
+      withBusy('tm',newBtn,status,'Creating',async()=>{
+        const res=await fetch('/api/tempmail/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prefix:prefixInput.value.trim()})});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok)throw Error(data.error||'Create failed ('+res.status+')');
+        token=data.token;addrInput.value=data.address;
+        copyBtn.disabled=false;refreshBtn.disabled=false;
+        start();
+        await loadInbox(true);
+        return 'Mailbox ready. Waiting for email at '+data.address;
+      });
+    });
+    refreshBtn.addEventListener('click',()=>loadInbox(false));
+    copyBtn.addEventListener('click',()=>{if(!addrInput.value)return;navigator.clipboard.writeText(addrInput.value).then(()=>{copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy address',2000);});});
   }
 }
