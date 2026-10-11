@@ -24,7 +24,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-4 md:px-8">
             <Link href="/" className="wordmark text-xl font-extrabold tracking-tight">Qword<span>Tools</span></Link>
             <nav aria-label="Main navigation" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
-              {navigation.map(([label, href]) => <Link className="nav-link transition-colors" href={href} key={label}>{label}</Link>)}
+              {navigation.map(([label, href]) => href === "/" ? <Link className="nav-link transition-colors" href={href} key={label}>{label}</Link> : <a className="nav-link transition-colors" href={href} key={label}>{label}</a>)}
             </nav>
           </div>
         </header>
