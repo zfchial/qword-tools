@@ -19,13 +19,37 @@ function clearField(id) {
 
 function convertProgress(prefix) {
   const box=document.getElementById(prefix+'Progress'),fill=document.getElementById(prefix+'ProgressFill'),text=document.getElementById(prefix+'ProgressText'),track=box?.querySelector('.convert-progress-track');
+  if(!box||!fill||!text)return null;
+  const shownAt={t:0};
   return {
-    show(){box.hidden=false;},
+    show(){box.hidden=false;shownAt.t=Date.now();},
     hide(){box.hidden=true;},
     set(percent,label){const p=Math.max(0,Math.min(100,Math.round(percent)));fill.style.width=p+'%';fill.classList.remove('is-busy');track?.setAttribute('aria-valuenow',String(p));if(label)text.textContent=label;},
     busy(label){fill.classList.add('is-busy');if(label)text.textContent=label;},
     done(label){fill.classList.remove('is-busy');fill.style.width='100%';track?.setAttribute('aria-valuenow','100');if(label)text.textContent=label;}
   };
+}
+
+async function withBusy(prefix,button,status,label,work,doneLabel){
+  const progress=convertProgress(prefix);
+  button.disabled=true;status.textContent='';
+  const started=Date.now();let ticker=null;
+  if(progress){
+    progress.show();progress.busy(label+' 0s');
+    ticker=setInterval(()=>progress.busy(label+' '+Math.round((Date.now()-started)/1000)+'s'),250);
+  }else status.textContent=label+'…';
+  try{
+    const result=await work();
+    if(ticker)clearInterval(ticker);
+    if(progress){progress.done('Done.');setTimeout(()=>progress.hide(),4000);}
+    status.textContent=(typeof result==='string'&&result)?result:(doneLabel||'Done.');
+    return result;
+  }catch(e){
+    if(ticker)clearInterval(ticker);
+    if(progress)progress.hide();
+    status.textContent=e.message;
+    return undefined;
+  }finally{button.disabled=false;}
 }
 
 function uploadWithProgress(url,body,onUpload,isRaw) {
@@ -826,10 +850,10 @@ function setupTool(type) {
   } else if (type === 'dns-lookup') {
     const input=document.getElementById('dnsDomain'),button=document.getElementById('dnsBtn'),status=document.getElementById('dnsStatus'),out=document.getElementById('dnsOut');
     const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    button.addEventListener('click',async()=>{
+    button.addEventListener('click',()=>{
       const domain=input.value.trim();if(!domain){status.textContent='Enter a domain name.';return;}
-      button.disabled=true;status.textContent='Querying DNS…';out.innerHTML='';
-      try{
+      out.innerHTML='';
+      withBusy('dns',button,status,'Querying DNS',async()=>{
         const res=await fetch('/api/network/dns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain})});
         const data=await res.json();
         if(!res.ok)throw Error(data.error||'Lookup failed.');
@@ -839,17 +863,17 @@ function setupTool(type) {
           html+='<h4 style="margin:10px 0 4px">'+t+'</h4>';
           html+=r.ok?(r.values.length?'<ul style="margin:0;padding-left:20px;font-family:monospace;font-size:13px;word-break:break-all">'+r.values.map((v)=>'<li>'+esc(v)+'</li>').join('')+'</ul>':'<p style="color:var(--muted)">No records.</p>'):'<p style="color:var(--muted)">'+esc(r.error||'lookup failed')+'</p>';
         }
-        out.innerHTML=html;status.textContent='Results for '+data.domain;
-      }catch(e){status.textContent=e.message;}
-      finally{button.disabled=false;}
+        out.innerHTML=html;
+        return 'Results for '+data.domain;
+      });
     });
   } else if (type === 'whois-lookup') {
     const input=document.getElementById('whoisDomain'),button=document.getElementById('whoisBtn'),status=document.getElementById('whoisStatus'),out=document.getElementById('whoisOut');
     const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    button.addEventListener('click',async()=>{
+    button.addEventListener('click',()=>{
       const domain=input.value.trim();if(!domain){status.textContent='Enter a domain name.';return;}
-      button.disabled=true;status.textContent='Querying WHOIS…';out.innerHTML='';
-      try{
+      out.innerHTML='';
+      withBusy('whois',button,status,'Querying WHOIS',async()=>{
         const res=await fetch('/api/network/whois',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain})});
         const data=await res.json();
         if(!res.ok)throw Error(data.error||'Lookup failed.');
@@ -866,33 +890,31 @@ function setupTool(type) {
           +'<tr><td style="padding:6px 12px"><strong>Expires</strong></td><td style="padding:6px 12px">'+esc(ev('expiration'))+'</td></tr>'
           +'<tr><td style="padding:6px 12px"><strong>Status</strong></td><td style="padding:6px 12px">'+esc((d.status||[]).join(', ')||'—')+'</td></tr>'
           +'<tr><td style="padding:6px 12px"><strong>Name servers</strong></td><td style="padding:6px 12px">'+esc(ns)+'</td></tr></table>';
-        status.textContent='Record found via RDAP.';
-      }catch(e){status.textContent=e.message;}
-      finally{button.disabled=false;}
+        return 'Record found via RDAP.';
+      });
     });
   } else if (type === 'http-headers') {
     const input=document.getElementById('hdrUrl'),button=document.getElementById('hdrBtn'),status=document.getElementById('hdrStatus'),out=document.getElementById('hdrOut');
     const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    button.addEventListener('click',async()=>{
+    button.addEventListener('click',()=>{
       const url=input.value.trim();if(!url){status.textContent='Enter a URL.';return;}
-      button.disabled=true;status.textContent='Fetching headers…';out.innerHTML='';
-      try{
+      out.innerHTML='';
+      withBusy('hdr',button,status,'Fetching headers',async()=>{
         const res=await fetch('/api/network/headers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
         const data=await res.json();
         if(!res.ok)throw Error(data.error||'Fetch failed.');
         out.innerHTML=data.chain.map((hop,i)=>'<h4 style="margin:10px 0 4px">Hop '+(i+1)+' — '+hop.status+' — '+esc(hop.url)+'</h4><table style="border-collapse:collapse;font-size:13px">'+Object.entries(hop.headers).map(([k,v])=>'<tr><td style="padding:4px 10px;font-family:monospace;color:var(--muted)">'+esc(k)+'</td><td style="padding:4px 10px;font-family:monospace;word-break:break-all">'+esc(v)+'</td></tr>').join('')+'</table>').join('');
-        status.textContent=data.chain.length+' hop(s).';
-      }catch(e){status.textContent=e.message;}
-      finally{button.disabled=false;}
+        return data.chain.length+' hop(s).';
+      });
     });
   } else if (type === 'ssl-checker') {
     const input=document.getElementById('sslHost'),button=document.getElementById('sslBtn'),status=document.getElementById('sslStatus'),out=document.getElementById('sslOut');
     const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    button.addEventListener('click',async()=>{
+    button.addEventListener('click',()=>{
       let host=input.value.trim().toLowerCase().replace(/^https?:\/\//,'').split('/')[0].split(':')[0];
       if(!host||!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)){status.textContent='Enter a valid hostname.';return;}
-      button.disabled=true;status.textContent='Reading TLS certificate…';out.innerHTML='';
-      try{
+      out.innerHTML='';
+      withBusy('ssl',button,status,'Reading TLS certificate',async()=>{
         const res=await fetch('/api/network/ssl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
         const data=await res.json();
         if(!res.ok)throw Error(data.error||'Check failed.');
@@ -904,39 +926,29 @@ function setupTool(type) {
           +'<tr><td style="padding:6px 12px"><strong>Days left</strong></td><td style="padding:6px 12px">'+data.daysLeft+' day(s)'+(data.daysLeft<30?' — renew soon!':'')+'</td></tr>'
           +'<tr><td style="padding:6px 12px"><strong>Trusted</strong></td><td style="padding:6px 12px">'+(data.trusted?'Yes':'No — '+esc(data.trustError||'untrusted'))+'</td></tr>'
           +'<tr><td style="padding:6px 12px"><strong>SAN</strong></td><td style="padding:6px 12px;font-family:monospace">'+esc((data.san||[]).join(', ')||'—')+'</td></tr></table>';
-        status.textContent='Live certificate read from '+data.host+'.';
-      }catch(e){status.textContent=e.message;}
-      finally{button.disabled=false;}
+        return 'Live certificate read from '+data.host+'.';
+      });
     });
   } else if (type === 'website-shot') {
     const urlInput=document.getElementById('shotUrl'),button=document.getElementById('convertShot'),status=document.getElementById('shotStatus'),preview=document.getElementById('shotPreview');
     urlInput.addEventListener('input',()=>{button.disabled=!urlInput.value.trim();});
     urlInput.addEventListener('change',()=>{button.disabled=!urlInput.value.trim();});
     button.disabled=!urlInput.value.trim();
-    button.addEventListener('click',async()=>{
+    button.addEventListener('click',()=>{
       const url=urlInput.value.trim();if(!url)return;
       preview.innerHTML='';
-      const progress=convertProgress('shot');
-      button.disabled=true;status.textContent='';
-      progress.show();progress.busy('Rendering page… 0s');
-      const started=Date.now();
-      const ticker=setInterval(()=>progress.busy('Rendering page… '+Math.round((Date.now()-started)/1000)+'s'),250);
-      try{
+      withBusy('shot',button,status,'Rendering page',async()=>{
         const res=await fetch('/api/network/screenshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,device:document.getElementById('shotDevice').value})});
         if(!res.ok){const data=await res.json().catch(()=>({}));throw Error(data.error||'Screenshot failed ('+res.status+')');}
         const blob=await res.blob();
-        clearInterval(ticker);
-        progress.done('Done.');
         const img=document.createElement('img');
         img.src=URL.createObjectURL(blob);
         img.alt='Screenshot of '+url;
         img.style.cssText='max-width:100%;border:1px solid var(--line);border-radius:10px;margin-top:8px';
         preview.appendChild(img);
         downloadBlob(blob,'screenshot-'+Date.now()+'.png');
-        status.textContent='Screenshot captured.';
-        setTimeout(()=>progress.hide(),4000);
-      }catch(e){clearInterval(ticker);progress.hide();status.textContent=e.message;}
-      finally{button.disabled=false;}
+        return 'Screenshot captured.';
+      });
     });
   }
 }

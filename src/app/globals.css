@@ -57,8 +57,8 @@ button { cursor: pointer; }
 .tool-title { color: var(--text); }
 .open-link { color: var(--brand); }
 .empty-state { color: var(--muted); border-color: var(--line); }
-.tool-panel input, .tool-panel textarea, .tool-panel select { width: 100%; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); padding: .65rem .75rem; }
-.tool-panel button { border: 1px solid var(--brand); border-radius: .5rem; background: var(--brand); color: var(--page); padding: .6rem .9rem; font-size: .875rem; font-weight: 700; }
+.tool-panel input, .tool-panel textarea, .tool-panel select { width: 100%; border: 1px solid var(--line); border-radius: .5rem; background: var(--surface); padding: .65rem .75rem; font-size: 1rem; -webkit-user-select: text; user-select: text; }
+.tool-panel button { border: 1px solid var(--brand); border-radius: .5rem; background: var(--brand); color: var(--page); padding: .6rem .9rem; font-size: .875rem; font-weight: 700; touch-action: manipulation; }
 .tool-panel button.btn-secondary { background: var(--brand-soft); color: var(--text); }
 .tool-panel .field { margin: 0 0 1rem; }
 .tool-panel .field label, .tool-panel label { display: block; margin-bottom: .35rem; color: var(--text); font-size: .875rem; font-weight: 600; }
