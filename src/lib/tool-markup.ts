@@ -455,6 +455,16 @@ export function renderToolInteractive(tool: { type: string }) {
       <div class="field" style="margin-top:8px"><label>Result</label><textarea id="output" rows="10" readonly style="font-family:monospace"></textarea></div>
       <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
     `;
+  } else if (type === 'dns-lookup') {
+    return `<div class="field"><label for="dnsDomain">Domain name</label><input id="dnsDomain" type="text" placeholder="example.com" style="width:100%"></div><div class="actions"><button id="dnsBtn">Look up DNS</button></div><p id="dnsStatus" aria-live="polite"></p><div id="dnsOut" style="margin-top:8px"></div><p>Queries A, AAAA, MX, TXT, NS, CNAME, and SOA records live from the server.</p>`;
+  } else if (type === 'whois-lookup') {
+    return `<div class="field"><label for="whoisDomain">Domain name</label><input id="whoisDomain" type="text" placeholder="example.com" style="width:100%"></div><div class="actions"><button id="whoisBtn">Look up WHOIS</button></div><p id="whoisStatus" aria-live="polite"></p><div id="whoisOut" style="margin-top:8px"></div><p>Registration data comes from RDAP. Privacy-protected domains hide contact details.</p>`;
+  } else if (type === 'http-headers') {
+    return `<div class="field"><label for="hdrUrl">URL</label><input id="hdrUrl" type="text" placeholder="https://example.com" style="width:100%"></div><div class="actions"><button id="hdrBtn">Fetch headers</button></div><p id="hdrStatus" aria-live="polite"></p><div id="hdrOut" style="margin-top:8px"></div><p>Follows up to 5 redirects and shows every hop.</p>`;
+  } else if (type === 'ssl-checker') {
+    return `<div class="field"><label for="sslHost">Hostname</label><input id="sslHost" type="text" placeholder="example.com" style="width:100%"></div><div class="actions"><button id="sslBtn">Check certificate</button></div><p id="sslStatus" aria-live="polite"></p><div id="sslOut" style="margin-top:8px"></div><p>Reads the live TLS certificate directly from the server.</p>`;
+  } else if (type === 'website-shot') {
+    return `<div class="field"><label for="shotUrl">Page URL</label><input id="shotUrl" type="text" placeholder="https://example.com" style="width:100%"></div><div class="field"><label for="shotDevice">Viewport</label><select id="shotDevice"><option value="desktop">Desktop 1280x800</option><option value="tablet">Tablet 820x1180</option><option value="mobile">Mobile 390x844</option></select></div><button id="convertShot" disabled>Capture screenshot</button><div class="convert-progress" id="shotProgress" hidden><div class="convert-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="convert-progress-fill" id="shotProgressFill"></div></div><p class="convert-progress-text" id="shotProgressText">Ready.</p></div><p id="shotStatus" aria-live="polite"></p><div id="shotPreview" style="margin-top:8px"></div><p>Full-page PNG rendered by headless Chromium on the server. Bot-protected pages may fail.</p>`;
   }
   return `<p>Tool interface ready.</p>`;
 }

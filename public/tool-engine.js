@@ -823,5 +823,120 @@ function setupTool(type) {
       }catch(e){err.textContent='Invalid XML: '+e.message;}
     };
     window.minifyXml = () => {err.textContent='';try{const doc=new DOMParser().parseFromString(input.value,'text/xml');if(doc.getElementsByTagName('parsererror').length)throw Error('parse error');output.value=new XMLSerializer().serializeToString(doc).replace(/>\s+</g,'><').trim();}catch(e){err.textContent='Invalid XML: '+e.message;}};
+  } else if (type === 'dns-lookup') {
+    const input=document.getElementById('dnsDomain'),button=document.getElementById('dnsBtn'),status=document.getElementById('dnsStatus'),out=document.getElementById('dnsOut');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    button.addEventListener('click',async()=>{
+      const domain=input.value.trim();if(!domain){status.textContent='Enter a domain name.';return;}
+      button.disabled=true;status.textContent='Querying DNS…';out.innerHTML='';
+      try{
+        const res=await fetch('/api/network/dns',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain})});
+        const data=await res.json();
+        if(!res.ok)throw Error(data.error||'Lookup failed.');
+        let html='';
+        for(const t of ['A','AAAA','MX','TXT','NS','CNAME','SOA']){
+          const r=data.results[t];
+          html+='<h4 style="margin:10px 0 4px">'+t+'</h4>';
+          html+=r.ok?(r.values.length?'<ul style="margin:0;padding-left:20px;font-family:monospace;font-size:13px;word-break:break-all">'+r.values.map((v)=>'<li>'+esc(v)+'</li>').join('')+'</ul>':'<p style="color:var(--muted)">No records.</p>'):'<p style="color:var(--muted)">'+esc(r.error||'lookup failed')+'</p>';
+        }
+        out.innerHTML=html;status.textContent='Results for '+data.domain;
+      }catch(e){status.textContent=e.message;}
+      finally{button.disabled=false;}
+    });
+  } else if (type === 'whois-lookup') {
+    const input=document.getElementById('whoisDomain'),button=document.getElementById('whoisBtn'),status=document.getElementById('whoisStatus'),out=document.getElementById('whoisOut');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    button.addEventListener('click',async()=>{
+      const domain=input.value.trim();if(!domain){status.textContent='Enter a domain name.';return;}
+      button.disabled=true;status.textContent='Querying WHOIS…';out.innerHTML='';
+      try{
+        const res=await fetch('/api/network/whois',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain})});
+        const data=await res.json();
+        if(!res.ok)throw Error(data.error||'Lookup failed.');
+        const d=data.data||{};
+        const pick=(...keys)=>{for(const k of keys){if(d[k])return d[k];}return '';};
+        const ent=(role)=>{const e=(d.entities||[]).find((x)=>(x.roles||[]).includes(role));return e?e.vcardArray?.[1]?.find((f)=>f[0]==='fn')?.[3]||e.handle||'':'—';};
+        const ev=(action)=>{const e=(d.events||[]).find((x)=>x.eventAction===action);return e?e.eventDate?.slice(0,10)||'':'—';};
+        const ns=(d.nameservers||[]).map((n)=>n.ldhName||n.unicodeName).filter(Boolean).join(', ')||'—';
+        out.innerHTML='<table style="border-collapse:collapse;font-size:14px">'
+          +'<tr><td style="padding:6px 12px"><strong>Domain</strong></td><td style="padding:6px 12px">'+esc(pick('ldhName','unicodeName',domain))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Registrar</strong></td><td style="padding:6px 12px">'+esc(ent('registrar'))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Created</strong></td><td style="padding:6px 12px">'+esc(ev('registration'))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Updated</strong></td><td style="padding:6px 12px">'+esc(ev('last changed'))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Expires</strong></td><td style="padding:6px 12px">'+esc(ev('expiration'))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Status</strong></td><td style="padding:6px 12px">'+esc((d.status||[]).join(', ')||'—')+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Name servers</strong></td><td style="padding:6px 12px">'+esc(ns)+'</td></tr></table>';
+        status.textContent='Record found via RDAP.';
+      }catch(e){status.textContent=e.message;}
+      finally{button.disabled=false;}
+    });
+  } else if (type === 'http-headers') {
+    const input=document.getElementById('hdrUrl'),button=document.getElementById('hdrBtn'),status=document.getElementById('hdrStatus'),out=document.getElementById('hdrOut');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    button.addEventListener('click',async()=>{
+      const url=input.value.trim();if(!url){status.textContent='Enter a URL.';return;}
+      button.disabled=true;status.textContent='Fetching headers…';out.innerHTML='';
+      try{
+        const res=await fetch('/api/network/headers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+        const data=await res.json();
+        if(!res.ok)throw Error(data.error||'Fetch failed.');
+        out.innerHTML=data.chain.map((hop,i)=>'<h4 style="margin:10px 0 4px">Hop '+(i+1)+' — '+hop.status+' — '+esc(hop.url)+'</h4><table style="border-collapse:collapse;font-size:13px">'+Object.entries(hop.headers).map(([k,v])=>'<tr><td style="padding:4px 10px;font-family:monospace;color:var(--muted)">'+esc(k)+'</td><td style="padding:4px 10px;font-family:monospace;word-break:break-all">'+esc(v)+'</td></tr>').join('')+'</table>').join('');
+        status.textContent=data.chain.length+' hop(s).';
+      }catch(e){status.textContent=e.message;}
+      finally{button.disabled=false;}
+    });
+  } else if (type === 'ssl-checker') {
+    const input=document.getElementById('sslHost'),button=document.getElementById('sslBtn'),status=document.getElementById('sslStatus'),out=document.getElementById('sslOut');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    button.addEventListener('click',async()=>{
+      let host=input.value.trim().toLowerCase().replace(/^https?:\/\//,'').split('/')[0].split(':')[0];
+      if(!host||!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)){status.textContent='Enter a valid hostname.';return;}
+      button.disabled=true;status.textContent='Reading TLS certificate…';out.innerHTML='';
+      try{
+        const res=await fetch('/api/network/ssl',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({host})});
+        const data=await res.json();
+        if(!res.ok)throw Error(data.error||'Check failed.');
+        out.innerHTML='<table style="border-collapse:collapse;font-size:14px">'
+          +'<tr><td style="padding:6px 12px"><strong>Subject</strong></td><td style="padding:6px 12px">'+esc(data.subject||'—')+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Issuer</strong></td><td style="padding:6px 12px">'+esc(data.issuer||'—')+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Valid from</strong></td><td style="padding:6px 12px">'+esc(String(data.validFrom||'').slice(0,24))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Expires</strong></td><td style="padding:6px 12px">'+esc(String(data.validTo||'').slice(0,24))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Days left</strong></td><td style="padding:6px 12px">'+data.daysLeft+' day(s)'+(data.daysLeft<30?' — renew soon!':'')+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>Trusted</strong></td><td style="padding:6px 12px">'+(data.trusted?'Yes':'No — '+esc(data.trustError||'untrusted'))+'</td></tr>'
+          +'<tr><td style="padding:6px 12px"><strong>SAN</strong></td><td style="padding:6px 12px;font-family:monospace">'+esc((data.san||[]).join(', ')||'—')+'</td></tr></table>';
+        status.textContent='Live certificate read from '+data.host+'.';
+      }catch(e){status.textContent=e.message;}
+      finally{button.disabled=false;}
+    });
+  } else if (type === 'website-shot') {
+    const urlInput=document.getElementById('shotUrl'),button=document.getElementById('convertShot'),status=document.getElementById('shotStatus'),preview=document.getElementById('shotPreview');
+    urlInput.addEventListener('input',()=>{button.disabled=!urlInput.value.trim();});
+    urlInput.addEventListener('change',()=>{button.disabled=!urlInput.value.trim();});
+    button.disabled=!urlInput.value.trim();
+    button.addEventListener('click',async()=>{
+      const url=urlInput.value.trim();if(!url)return;
+      preview.innerHTML='';
+      const progress=convertProgress('shot');
+      button.disabled=true;status.textContent='';
+      progress.show();progress.busy('Rendering page… 0s');
+      const started=Date.now();
+      const ticker=setInterval(()=>progress.busy('Rendering page… '+Math.round((Date.now()-started)/1000)+'s'),250);
+      try{
+        const res=await fetch('/api/network/screenshot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,device:document.getElementById('shotDevice').value})});
+        if(!res.ok){const data=await res.json().catch(()=>({}));throw Error(data.error||'Screenshot failed ('+res.status+')');}
+        const blob=await res.blob();
+        clearInterval(ticker);
+        progress.done('Done.');
+        const img=document.createElement('img');
+        img.src=URL.createObjectURL(blob);
+        img.alt='Screenshot of '+url;
+        img.style.cssText='max-width:100%;border:1px solid var(--line);border-radius:10px;margin-top:8px';
+        preview.appendChild(img);
+        downloadBlob(blob,'screenshot-'+Date.now()+'.png');
+        status.textContent='Screenshot captured.';
+        setTimeout(()=>progress.hide(),4000);
+      }catch(e){clearInterval(ticker);progress.hide();status.textContent=e.message;}
+      finally{button.disabled=false;}
+    });
   }
 }

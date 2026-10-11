@@ -752,5 +752,95 @@
         "a": "Yes. One click collapses formatted XML to a single line."
       }
     ]
+  },
+  {
+    "slug": "dns-lookup",
+    "name": "DNS Lookup",
+    "category": "Developer Tools",
+    "description": "Look up A, AAAA, MX, TXT, NS, CNAME, and SOA records for any domain.",
+    "type": "dns-lookup",
+    "seoText": "Check DNS records for any domain: A, AAAA, MX, TXT, NS, CNAME, and SOA. Lookups run on the server; results are not cached.",
+    "faq": [
+      {
+        "q": "Which record types are checked?",
+        "a": "A, AAAA, MX, TXT, NS, CNAME, and SOA in one request."
+      },
+      {
+        "q": "Is the result cached?",
+        "a": "No. Every lookup queries DNS live."
+      }
+    ]
+  },
+  {
+    "slug": "whois-lookup",
+    "name": "WHOIS Lookup",
+    "category": "Developer Tools",
+    "description": "Find domain registration details: registrar, dates, and name servers.",
+    "type": "whois-lookup",
+    "seoText": "Look up domain registration data through RDAP: registrar, creation and expiry dates, status, and name servers. Privacy-protected domains may hide contact details.",
+    "faq": [
+      {
+        "q": "Where does the data come from?",
+        "a": "RDAP, the modern replacement for port-43 WHOIS."
+      },
+      {
+        "q": "Why are contacts hidden?",
+        "a": "Most registrars redact personal data for privacy."
+      }
+    ]
+  },
+  {
+    "slug": "http-header-checker",
+    "name": "HTTP Header Checker",
+    "category": "Developer Tools",
+    "description": "Inspect response status, redirects, and headers for any URL.",
+    "type": "http-headers",
+    "seoText": "Fetch HTTP response headers for any public URL, following up to 5 redirects. See status codes, server, content type, and security headers.",
+    "faq": [
+      {
+        "q": "Does it follow redirects?",
+        "a": "Yes. Each hop in the redirect chain is shown."
+      },
+      {
+        "q": "Can it check POST endpoints?",
+        "a": "No. It sends HEAD requests and reads the response headers."
+      }
+    ]
+  },
+  {
+    "slug": "ssl-checker",
+    "name": "SSL Certificate Checker",
+    "category": "Developer Tools",
+    "description": "Check a site's live TLS certificate: issuer, expiry, trust, and SAN.",
+    "type": "ssl-checker",
+    "seoText": "Inspect the live TLS certificate of any HTTPS host: subject, issuer, validity dates, days until expiry, trust status, and subject alternative names. The certificate is read directly from the server.",
+    "faq": [
+      {
+        "q": "Is the live certificate checked?",
+        "a": "Yes. The server opens a TLS connection and reads the certificate presented."
+      },
+      {
+        "q": "Does it verify trust?",
+        "a": "Yes. It reports whether the chain validates against system root certificates."
+      }
+    ]
+  },
+  {
+    "slug": "website-screenshot",
+    "name": "Website Screenshot",
+    "category": "Media & Visuals",
+    "description": "Capture a full-page PNG screenshot of any public URL in desktop, tablet, or mobile size.",
+    "type": "website-shot",
+    "seoText": "Take full-page website screenshots with headless Chromium. Choose desktop, tablet, or mobile viewport. Pages render with JavaScript; bot-protected sites may fail.",
+    "faq": [
+      {
+        "q": "Is the full page captured?",
+        "a": "Yes. The screenshot covers the full scrollable page height."
+      },
+      {
+        "q": "Do pages run JavaScript?",
+        "a": "Yes. Capture waits for the page to settle before shooting."
+      }
+    ]
   }
 ]

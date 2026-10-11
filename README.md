@@ -4,7 +4,7 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 
 ## Features
 
-- Search and filter 49 tools by category
+- Search and filter 54 tools by category
 - Responsive directory and individual tool pages
 - Light and dark themes based on the system appearance
 - Reduced-motion support and staggered list entrance animation
@@ -14,6 +14,8 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 - PDF merging and image-to-PDF creation
 - SEO helpers: meta tag generator, keyword density checker, readability analyzer
 - Developer helpers: regex tester, text diff checker, Markdown preview, XML formatter
+- Network helpers: DNS lookup, WHOIS/RDAP lookup, HTTP header checker, live SSL certificate checker
+- Full-page website screenshots in desktop, tablet, or mobile viewports (headless Chromium required)
 - Client-side processing for most utilities
 - MP4/DOCX/PDF/MP3 temporary files are removed after conversion
 - Static generation for tool pages, sitemap, and robots rules
@@ -28,6 +30,7 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 - FFmpeg and FFprobe are required for MP4/MP3/audio conversion
 - Docker is required for DOCX/PDF conversion; build the converter image with `docker build -f Dockerfile.converter -t qword-doc-converter .` before starting the app
 - pdf-lib is an npm dependency used for PDF merging and image-to-PDF creation
+- playwright-core plus a headless Chromium binary are required for website screenshots; set SCREENSHOT_CHROME to override the default binary path
 
 ## Getting started
 
