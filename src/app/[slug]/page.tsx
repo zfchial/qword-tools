@@ -9,7 +9,9 @@ const pages: Record<string, { title: string; description: string; body: React.Re
 export function generateStaticParams() { return Object.keys(pages).map((slug) => ({ slug })); }
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  return pages[slug] ? { title: pages[slug].title, description: pages[slug].description } : { title: "Page Not Found" };
+  if (!pages[slug]) return { title: "Page Not Found" };
+  const url = `https://qword.tech/${slug}`;
+  return { title: pages[slug].title, description: pages[slug].description, alternates: { canonical: url }, openGraph: { type: "website", siteName: "Qword Tools", locale: "en_US", url, title: pages[slug].title, description: pages[slug].description }, twitter: { card: "summary", title: pages[slug].title, description: pages[slug].description } };
 }
 export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

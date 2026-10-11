@@ -3,8 +3,12 @@ import Link from "next/link";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://qword.tech"),
   title: { default: "Qword Tools — Free Online Utilities", template: "%s | Qword Tools" },
   description: "Practical free online tools for text, developers, security, conversion, and media.",
+  alternates: { canonical: "https://qword.tech" },
+  openGraph: { type: "website", siteName: "Qword Tools", locale: "en_US", url: "https://qword.tech", title: "Qword Tools — Free Online Utilities", description: "Practical free online tools for text, developers, security, conversion, and media." },
+  twitter: { card: "summary", title: "Qword Tools — Free Online Utilities", description: "Practical free online tools for text, developers, security, conversion, and media." },
 };
 
 const navigation = [
