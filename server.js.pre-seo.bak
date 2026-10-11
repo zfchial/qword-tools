@@ -1,0 +1,702 @@
+const express = require('express');
+const compression = require('compression');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 8080;
+const tools = JSON.parse(fs.readFileSync(path.join(__dirname, 'tools.json'), 'utf8'));
+
+app.use(compression());
+app.use('/public', express.static(path.join(__dirname, 'public'), { maxAge: '1d' }));
+
+function baseLayout({ title, description, canonical, content }) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${title} | Qword Tools</title>
+  <meta name="description" content="${description}">
+  <link rel="canonical" href="${canonical}">
+  <meta property="og:title" content="${title}">
+  <meta property="og:description" content="${description}">
+  <meta property="og:url" content="${canonical}">
+  <meta property="og:type" content="website">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --border: #1f2937;
+      --border-focus: #3b82f6;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --brand: #3b82f6;
+      --brand-hover: #2563eb;
+      --brand-light: rgba(59, 130, 246, 0.1);
+      --accent: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    a { color: var(--brand); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header {
+      background: rgba(17, 24, 39, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .header-inner {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: -0.02em;
+    }
+    .logo span { color: var(--brand); }
+    nav { display: flex; gap: 18px; align-items: center; }
+    nav a { font-size: 14px; color: var(--muted); font-weight: 500; }
+    nav a:hover { color: #fff; text-decoration: none; }
+    main {
+      flex: 1;
+      max-width: 1240px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+    .ad-slot {
+      margin: 20px 0;
+      background: rgba(31, 41, 55, 0.25);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      min-height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .ad-leaderboard { max-width: 728px; margin: 16px auto; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+    }
+    input, textarea, select, button {
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--border-focus);
+    }
+    button {
+      background: var(--brand);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: background 0.15s;
+    }
+    button:hover { background: var(--brand-hover); }
+    button.btn-secondary { background: #374151; }
+    button.btn-secondary:hover { background: #4b5563; }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <a href="/" class="logo">Qword<span>Tools</span></a>
+      <nav>
+        <a href="/">All Tools</a>
+        <a href="/#text-writing">Text</a>
+        <a href="/#developer-tools">Dev</a>
+        <a href="/#security-crypto">Security</a>
+        <a href="/#converters-math">Converters</a>
+        <a href="/#media-visuals">Media</a>
+      </nav>
+    </div>
+  </header>
+  <main>
+    <div class="ad-slot ad-leaderboard" data-slot="header">
+      <span>Advertisement Slot (728x90 Header)</span>
+    </div>
+    ${content}
+    <div class="ad-slot ad-leaderboard" data-slot="footer">
+      <span>Advertisement Slot (Responsive Footer)</span>
+    </div>
+  </main>
+  <footer>
+    <p>&copy; ${new Date().getFullYear()} Qword Tools &bull; Privacy-first, 100% client-side web utility toolkit &bull; <a href="/sitemap.xml">Sitemap</a></p>
+  </footer>
+</body>
+</html>`;
+}
+
+app.get('/', (req, res) => {
+  const categories = [...new Set(tools.map(t => t.category))];
+  const toolCards = tools.map(t => `
+    <div class="tool-card" data-cat="${t.category}" data-name="${t.name.toLowerCase()}">
+      <span class="badge">${t.category}</span>
+      <h3><a href="/tool/${t.slug}">${t.name}</a></h3>
+      <p>${t.description}</p>
+      <a href="/tool/${t.slug}" class="open-link">Open Tool &rarr;</a>
+    </div>
+  `).join('');
+
+  const catButtons = categories.map(c => `
+    <button type="button" class="cat-btn" onclick="filterCat('${c}')">${c}</button>
+  `).join('');
+
+  const content = `
+    <div class="hero">
+      <h1>Free Online Developer & Text Tools</h1>
+      <p>Fast, client-side, zero-latency digital utility suite. Over ${tools.length}+ clean tools designed for developers, writers, and power users.</p>
+      <div class="search-box">
+        <input type="text" id="toolSearch" placeholder="Search any tool (e.g. JSON, Case, UUID, Hash, QR Code, Cron)..." oninput="filterTools()">
+      </div>
+      <div class="cat-bar">
+        <button type="button" class="cat-btn active" onclick="filterCat('all')">All (${tools.length})</button>
+        ${catButtons}
+      </div>
+    </div>
+    <div class="tools-grid" id="toolsGrid">
+      ${toolCards}
+    </div>
+    <style>
+      .hero { text-align: center; padding: 36px 10px 24px; }
+      .hero h1 { font-size: 32px; font-weight: 800; color: #fff; margin-bottom: 10px; letter-spacing: -0.02em; }
+      .hero p { color: var(--muted); max-width: 680px; margin: 0 auto 20px; font-size: 15px; }
+      .search-box { max-width: 580px; margin: 0 auto 18px; }
+      .search-box input { width: 100%; font-size: 15px; padding: 14px 20px; border-radius: 99px; }
+      .cat-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 26px; }
+      .cat-btn { background: #1f2937; border: 1px solid var(--border); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--muted); }
+      .cat-btn.active, .cat-btn:hover { background: var(--brand); color: #fff; }
+      .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+      .tool-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; transition: transform 0.15s, border-color 0.15s; }
+      .tool-card:hover { transform: translateY(-2px); border-color: var(--brand); }
+      .tool-card .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--brand); font-weight: 700; margin-bottom: 8px; }
+      .tool-card h3 { font-size: 17px; margin-bottom: 8px; color: #fff; font-weight: 700; }
+      .tool-card p { color: var(--muted); font-size: 13px; flex: 1; margin-bottom: 14px; line-height: 1.5; }
+      .tool-card .open-link { font-size: 13px; font-weight: 600; color: var(--brand); align-self: flex-start; }
+    </style>
+    <script>
+      let curCat = 'all';
+      function filterCat(cat) {
+        curCat = cat;
+        document.querySelectorAll('.cat-btn').forEach(b => {
+          b.classList.toggle('active', b.innerText.toLowerCase().startsWith(cat.toLowerCase()));
+        });
+        filterTools();
+      }
+      function filterTools() {
+        const q = (document.getElementById('toolSearch').value || '').toLowerCase().trim();
+        document.querySelectorAll('.tool-card').forEach(card => {
+          const matchCat = curCat === 'all' || card.dataset.cat.toLowerCase() === curCat.toLowerCase();
+          const matchText = !q || card.dataset.name.includes(q) || card.innerText.toLowerCase().includes(q);
+          card.style.display = (matchCat && matchText) ? 'flex' : 'none';
+        });
+      }
+    </script>
+  `;
+
+  res.send(baseLayout({
+    title: 'Free Online Utility & Developer Toolkit',
+    description: 'Collection of free, client-side developer, text, formatting, and conversion tools with zero latency.',
+    canonical: 'https://qword.tech/',
+    content
+  }));
+});
+
+function renderToolInteractive(tool) {
+  const type = tool.type;
+  if (type === 'text-case') {
+    return `
+      <div class="field"><label>Input Text</label><textarea id="input" rows="4" placeholder="Type or paste text to convert..."></textarea></div>
+      <div class="actions">
+        <button onclick="setCase('upper')">UPPERCASE</button>
+        <button onclick="setCase('lower')">lowercase</button>
+        <button onclick="setCase('title')">Title Case</button>
+        <button onclick="setCase('camel')">camelCase</button>
+        <button onclick="setCase('pascal')">PascalCase</button>
+        <button onclick="setCase('snake')">snake_case</button>
+        <button onclick="setCase('kebab')">kebab-case</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:16px"><label>Output</label><textarea id="output" rows="4" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Output</button>
+    `;
+  } else if (type === 'word-counter') {
+    return `
+      <div class="field"><label>Text Content</label><textarea id="input" rows="8" placeholder="Type or paste text to count words, characters, and sentences in real time..."></textarea></div>
+      <div class="stats-grid">
+        <div class="stat-box"><span id="statWords">0</span><small>Words</small></div>
+        <div class="stat-box"><span id="statChars">0</span><small>Characters</small></div>
+        <div class="stat-box"><span id="statCharsNoSpace">0</span><small>No Spaces</small></div>
+        <div class="stat-box"><span id="statSentences">0</span><small>Sentences</small></div>
+        <div class="stat-box"><span id="statParagraphs">0</span><small>Paragraphs</small></div>
+        <div class="stat-box"><span id="statReadTime">0 min</span><small>Read Time</small></div>
+      </div>
+      <style>
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-top: 16px; }
+        .stat-box { background: #1f2937; padding: 14px; border-radius: 8px; text-align: center; }
+        .stat-box span { display: block; font-size: 22px; font-weight: 700; color: var(--brand); }
+        .stat-box small { color: var(--muted); font-size: 12px; }
+      </style>
+    `;
+  } else if (type === 'lorem') {
+    return `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <label>Paragraphs:</label><input type="number" id="count" value="3" min="1" max="20" style="width:70px">
+        <button onclick="genLorem()">Generate Placeholder</button>
+      </div>
+      <div class="field"><textarea id="output" rows="8" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Text</button>
+    `;
+  } else if (type === 'slugify') {
+    return `
+      <div class="field"><label>Input Title</label><input type="text" id="input" value="10 Best Free Developer Tools for 2026!" style="width:100%"></div>
+      <div class="field" style="margin-top:14px"><label>Generated Slug</label><input type="text" id="output" readonly style="width:100%;font-family:monospace"></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Slug</button>
+    `;
+  } else if (type === 'dedupe-lines') {
+    return `
+      <div class="field"><label>Input List (one item per line)</label><textarea id="input" rows="6" placeholder="apple&#10;banana&#10;apple&#10;orange"></textarea></div>
+      <div class="actions">
+        <button onclick="cleanLines(false)">Remove Duplicates</button>
+        <button onclick="cleanLines(true)">Remove Duplicates & Sort (A-Z)</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Deduplicated List</label><textarea id="output" rows="6" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'line-sort') {
+    return `
+      <div class="field"><label>Text Lines</label><textarea id="input" rows="6" placeholder="zebra&#10;apple&#10;mango"></textarea></div>
+      <div class="actions">
+        <button onclick="sortLines('az')">Sort A &rarr; Z</button>
+        <button onclick="sortLines('za')">Sort Z &rarr; A</button>
+        <button onclick="sortLines('num')">Add Line Numbers</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Sorted Output</label><textarea id="output" rows="6" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Output</button>
+    `;
+  } else if (type === 'find-replace') {
+    return `
+      <div class="field"><label>Input Text</label><textarea id="input" rows="5" placeholder="Enter text here..."></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0">
+        <div><label>Find</label><input type="text" id="findText" placeholder="Search term..." style="width:100%"></div>
+        <div><label>Replace With</label><input type="text" id="replaceText" placeholder="Replacement..." style="width:100%"></div>
+      </div>
+      <div style="margin-bottom:12px"><label><input type="checkbox" id="chkRegex"> Use Regular Expression (RegExp)</label></div>
+      <button onclick="runReplace()">Replace All</button>
+      <div class="field" style="margin-top:14px"><label>Result</label><textarea id="output" rows="5" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'text-reverse') {
+    return `
+      <div class="field"><label>Input Text</label><textarea id="input" rows="4" placeholder="Hello World"></textarea></div>
+      <div class="actions">
+        <button onclick="reverseChars()">Reverse Characters</button>
+        <button onclick="reverseWords()">Reverse Words</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Reversed Text</label><textarea id="output" rows="4" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Output</button>
+    `;
+  } else if (type === 'morse-code') {
+    return `
+      <div class="field"><label>Text / Morse Code</label><textarea id="input" rows="4" placeholder="SOS or ... --- ..."></textarea></div>
+      <div class="actions">
+        <button onclick="toMorse()">Text &rarr; Morse</button>
+        <button onclick="fromMorse()">Morse &rarr; Text</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Result</label><textarea id="output" rows="4" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'json-formatter') {
+    return `
+      <div class="field"><label>Input JSON</label><textarea id="input" rows="6" placeholder='{"hello": "world"}'></textarea></div>
+      <div class="actions">
+        <button onclick="formatJson(2)">Format (2 Spaces)</button>
+        <button onclick="formatJson(4)">Format (4 Spaces)</button>
+        <button onclick="formatJson(0)">Minify JSON</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <p id="errorMsg" style="color:#ef4444;font-size:13px;margin:8px 0;"></p>
+      <div class="field" style="margin-top:8px"><label>Result</label><textarea id="output" rows="8" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'json-yaml') {
+    return `
+      <div class="field"><label>JSON Input</label><textarea id="input" rows="6" placeholder='{"name": "app", "version": 1}'></textarea></div>
+      <div class="actions">
+        <button onclick="jsonToYaml()">Convert JSON &rarr; YAML</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>YAML Output</label><textarea id="output" rows="8" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy YAML</button>
+    `;
+  } else if (type === 'base64') {
+    return `
+      <div class="field"><label>Input String</label><textarea id="input" rows="4" placeholder="Enter text to encode or decode..."></textarea></div>
+      <div class="actions">
+        <button onclick="b64Encode()">Encode to Base64</button>
+        <button onclick="b64Decode()">Decode from Base64</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:16px"><label>Result</label><textarea id="output" rows="4" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'url-encode') {
+    return `
+      <div class="field"><label>URL / Parameter Input</label><textarea id="input" rows="4" placeholder="https://example.com/search?q=hello world"></textarea></div>
+      <div class="actions">
+        <button onclick="urlEncode()">URL Encode</button>
+        <button onclick="urlDecode()">URL Decode</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:16px"><label>Result</label><textarea id="output" rows="4" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'html-entities') {
+    return `
+      <div class="field"><label>HTML Markup</label><textarea id="input" rows="4" placeholder="<div class='container'>Hello & Welcome</div>"></textarea></div>
+      <div class="actions">
+        <button onclick="escapeHtml()">Escape HTML</button>
+        <button onclick="unescapeHtml()">Decode HTML</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Result</label><textarea id="output" rows="4" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Result</button>
+    `;
+  } else if (type === 'css-tool') {
+    return `
+      <div class="field"><label>CSS Code</label><textarea id="input" rows="6" placeholder="body { background: #000; color: #fff; }"></textarea></div>
+      <div class="actions">
+        <button onclick="minifyCss()">Minify CSS</button>
+        <button onclick="formatCss()">Beautify CSS</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Output</label><textarea id="output" rows="6" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Output</button>
+    `;
+  } else if (type === 'sql-formatter') {
+    return `
+      <div class="field"><label>SQL Query</label><textarea id="input" rows="6" placeholder="select id, name from users where active = 1 order by id desc"></textarea></div>
+      <div class="actions">
+        <button onclick="formatSql()">Format SQL</button>
+        <button class="btn-secondary" onclick="clearField('input')">Clear</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Formatted SQL</label><textarea id="output" rows="8" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy SQL</button>
+    `;
+  } else if (type === 'docker-run-compose') {
+    return `
+      <div class="field"><label>docker run Command</label><textarea id="input" rows="4" placeholder="docker run -d --name redis -p 6379:6379 -v /data:/data --restart always redis:alpine"></textarea></div>
+      <div class="actions">
+        <button onclick="convertToCompose()">Convert to docker-compose.yml</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>docker-compose.yml</label><textarea id="output" rows="8" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Compose YAML</button>
+    `;
+  } else if (type === 'user-agent') {
+    return `
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><label>User-Agent String</label><div id="uaRaw" style="background:#1f2937;padding:12px;border-radius:6px;word-break:break-all;font-family:monospace"></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div><label>Operating Platform</label><div id="uaPlatform" style="background:#1f2937;padding:10px;border-radius:6px"></div></div>
+          <div><label>Screen Dimensions</label><div id="uaScreen" style="background:#1f2937;padding:10px;border-radius:6px"></div></div>
+          <div><label>Navigator Language</label><div id="uaLang" style="background:#1f2937;padding:10px;border-radius:6px"></div></div>
+        </div>
+      </div>
+    `;
+  } else if (type === 'http-status') {
+    const codes = [
+      {c: 200, n: 'OK', d: 'Standard response for successful HTTP requests.'},
+      {c: 201, n: 'Created', d: 'The request has been fulfilled, resulting in the creation of a new resource.'},
+      {c: 204, n: 'No Content', d: 'The server successfully processed the request and is not returning any content.'},
+      {c: 301, n: 'Moved Permanently', d: 'This and all future requests should be directed to the given URI.'},
+      {c: 302, n: 'Found', d: 'Tells the client to look at another (temporary) URL.'},
+      {c: 304, n: 'Not Modified', d: 'Resource has not been modified since the version specified in If-Modified-Since.'},
+      {c: 400, n: 'Bad Request', d: 'The server cannot or will not process the request due to a client error.'},
+      {c: 401, n: 'Unauthorized', d: 'Authentication is required and has failed or has not yet been provided.'},
+      {c: 403, n: 'Forbidden', d: 'The request contained valid data, but the server refuses action.'},
+      {c: 404, n: 'Not Found', d: 'The requested resource could not be found but may be available in the future.'},
+      {c: 429, n: 'Too Many Requests', d: 'The user has sent too many requests in a given amount of time (rate limited).'},
+      {c: 500, n: 'Internal Server Error', d: 'A generic error message, given when an unexpected condition was encountered.'},
+      {c: 502, n: 'Bad Gateway', d: 'The server received an invalid response from the upstream server.'},
+      {c: 503, n: 'Service Unavailable', d: 'The server cannot handle the request (due to overload or maintenance).'},
+      {c: 504, n: 'Gateway Timeout', d: 'The server did not receive a timely response from the upstream server.'}
+    ];
+    return `
+      <div style="margin-bottom:14px"><input type="text" id="statusFilter" placeholder="Filter code (e.g. 404, 500, Unauthorized)..." oninput="filterStatus()" style="width:100%"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));gap:12px">
+        ${codes.map(x => `<div class="status-card" style="background:#1f2937;padding:14px;border-radius:8px"><b style="color:var(--brand);font-size:18px">${x.c}</b> ${x.n}<p style="color:var(--muted);font-size:12px;margin-top:4px">${x.d}</p></div>`).join('')}
+      </div>
+    `;
+  } else if (type === 'uuid') {
+    return `
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px">
+        <label>Quantity:</label><input type="number" id="count" value="5" min="1" max="50" style="width:70px">
+        <button onclick="genUuid()">Generate UUIDs</button>
+      </div>
+      <div class="field"><label>Generated UUID v4</label><textarea id="output" rows="6" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy All</button>
+    `;
+  } else if (type === 'password-gen') {
+    return `
+      <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-bottom:14px">
+        <label>Length: <input type="number" id="pwLen" value="16" min="6" max="128" style="width:70px"></label>
+        <label><input type="checkbox" id="chkUpper" checked> Uppercase</label>
+        <label><input type="checkbox" id="chkLower" checked> Lowercase</label>
+        <label><input type="checkbox" id="chkNum" checked> Numbers</label>
+        <label><input type="checkbox" id="chkSym" checked> Symbols</label>
+        <button onclick="genPassword()">Regenerate</button>
+      </div>
+      <div class="field"><textarea id="output" rows="2" style="font-size:18px;font-family:monospace;" readonly></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Password</button>
+    `;
+  } else if (type === 'hash-gen') {
+    return `
+      <div class="field"><label>Text String</label><input type="text" id="input" value="hello world" style="width:100%"></div>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px">
+        <div><label>SHA-1</label><input type="text" id="hash_sha1" readonly style="width:100%;font-family:monospace"></div>
+        <div><label>SHA-256</label><input type="text" id="hash_sha256" readonly style="width:100%;font-family:monospace"></div>
+        <div><label>SHA-384</label><input type="text" id="hash_sha384" readonly style="width:100%;font-family:monospace"></div>
+        <div><label>SHA-512</label><input type="text" id="hash_sha512" readonly style="width:100%;font-family:monospace"></div>
+      </div>
+    `;
+  } else if (type === 'jwt-decoder') {
+    return `
+      <div class="field"><label>Encoded JWT Token</label><textarea id="input" rows="4" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea></div>
+      <div class="actions"><button onclick="decodeJwt()">Decode Claims</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+        <div><label>Header</label><textarea id="headerOut" rows="8" readonly style="font-family:monospace;width:100%"></textarea></div>
+        <div><label>Payload (Claims)</label><textarea id="payloadOut" rows="8" readonly style="font-family:monospace;width:100%"></textarea></div>
+      </div>
+    `;
+  } else if (type === 'color-converter') {
+    return `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+        <input type="color" id="picker" value="#3b82f6" style="width:60px;height:45px;cursor:pointer;padding:2px">
+        <input type="text" id="hexIn" value="#3b82f6" style="width:140px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><label>RGB Format</label><input type="text" id="rgbOut" readonly style="width:100%"></div>
+        <div><label>HSL Format</label><input type="text" id="hslOut" readonly style="width:100%"></div>
+      </div>
+    `;
+  } else if (type === 'timestamp') {
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <label>Epoch Timestamp &rarr; Human Date</label>
+          <input type="text" id="epochIn" style="width:100%;margin:8px 0">
+          <button onclick="convertEpoch()">Convert</button>
+          <input type="text" id="dateOut" readonly style="width:100%;margin-top:8px">
+        </div>
+        <div>
+          <label>Date &rarr; Epoch Timestamp</label>
+          <input type="datetime-local" id="dateIn" style="width:100%;margin:8px 0">
+          <button onclick="convertDate()">Convert</button>
+          <input type="text" id="epochOut" readonly style="width:100%;margin-top:8px">
+        </div>
+      </div>
+    `;
+  } else if (type === 'binary-text') {
+    return `
+      <div class="field"><label>Input Value</label><textarea id="input" rows="4" placeholder="Type text or binary string..."></textarea></div>
+      <div class="actions">
+        <button onclick="textToBin()">Text &rarr; Binary</button>
+        <button onclick="binToText()">Binary &rarr; Text</button>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Output</label><textarea id="output" rows="4" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy Output</button>
+    `;
+  } else if (type === 'base-converter') {
+    return `
+      <div class="field"><label>Decimal (Base 10)</label><input type="text" id="decIn" style="width:100%"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px">
+        <div><label>Hexadecimal (Base 16)</label><input type="text" id="hexOut" readonly style="width:100%;font-family:monospace"></div>
+        <div><label>Binary (Base 2)</label><input type="text" id="binOut" readonly style="width:100%;font-family:monospace"></div>
+        <div><label>Octal (Base 8)</label><input type="text" id="octOut" readonly style="width:100%;font-family:monospace"></div>
+      </div>
+    `;
+  } else if (type === 'px-rem') {
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div><label>Pixels (px)</label><input type="number" id="pxIn" value="24" style="width:100%"></div>
+        <div><label>Root Base (px)</label><input type="number" id="baseIn" value="16" style="width:100%"></div>
+        <div><label>REM Output</label><input type="text" id="remOut" readonly style="width:100%;font-weight:700;color:var(--brand)"></div>
+      </div>
+    `;
+  } else if (type === 'byte-converter') {
+    return `
+      <div class="field"><label>Raw Bytes</label><input type="number" id="bytesIn" value="1048576" style="width:100%"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+        <div><label>Kilobytes (KB)</label><input type="text" id="resKb" readonly style="width:100%"></div>
+        <div><label>Megabytes (MB)</label><input type="text" id="resMb" readonly style="width:100%"></div>
+        <div><label>Gigabytes (GB)</label><input type="text" id="resGb" readonly style="width:100%"></div>
+        <div><label>Terabytes (TB)</label><input type="text" id="resTb" readonly style="width:100%"></div>
+      </div>
+    `;
+  } else if (type === 'qr-code') {
+    return `
+      <div class="field"><label>Text or URL</label><input type="text" id="input" value="https://qword.tech" style="width:100%"></div>
+      <div style="text-align:center;margin:20px 0;">
+        <img id="qrImg" alt="QR Code" style="background:#fff;padding:12px;border-radius:8px;max-width:240px">
+      </div>
+    `;
+  } else if (type === 'svg-placeholder') {
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr 2fr;gap:12px;margin-bottom:14px">
+        <div><label>Width</label><input type="number" id="wIn" value="600" style="width:100%"></div>
+        <div><label>Height</label><input type="number" id="hIn" value="400" style="width:100%"></div>
+        <div><label>Label</label><input type="text" id="tIn" value="600 x 400" style="width:100%"></div>
+      </div>
+      <button onclick="genSvg()">Generate Placeholder</button>
+      <div id="svgPreview" style="margin:16px 0;text-align:center"></div>
+      <div class="field"><label>SVG Code</label><textarea id="output" rows="4" readonly style="font-family:monospace"></textarea></div>
+      <button id="copyBtn" onclick="copyOutput('output')">Copy SVG</button>
+    `;
+  } else if (type === 'aspect-ratio') {
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div><label>Ratio Width</label><input type="number" id="rW" value="16" style="width:100%"></div>
+        <div><label>Ratio Height</label><input type="number" id="rH" value="9" style="width:100%"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div><label>Width (px)</label><input type="number" id="wIn" value="1920" oninput="calcRatio('w')" style="width:100%"></div>
+        <div><label>Height (px)</label><input type="number" id="hIn" value="1080" oninput="calcRatio('h')" style="width:100%"></div>
+      </div>
+    `;
+  }
+  return `<p>Tool interface ready.</p>`;
+}
+
+app.get('/tool/:slug', (req, res) => {
+  const tool = tools.find(t => t.slug === req.params.slug);
+  if (!tool) return res.status(404).send(baseLayout({ title: 'Tool Not Found', description: '', canonical: 'https://qword.tech/', content: '<h1>Tool Not Found</h1><p><a href="/">&larr; Back to Tools</a></p>' }));
+
+  const related = tools.filter(t => t.category === tool.category && t.slug !== tool.slug).slice(0, 4);
+  const relatedHtml = related.map(r => `<li><a href="/tool/${r.slug}">${r.name}</a> &mdash; ${r.description}</li>`).join('');
+
+  const faqHtml = (tool.faq || []).map(f => `
+    <div class="faq-item">
+      <h4>${f.q}</h4>
+      <p>${f.a}</p>
+    </div>
+  `).join('');
+
+  const content = `
+    <div class="breadcrumbs"><a href="/">Home</a> &rsaquo; <span>${tool.category}</span> &rsaquo; <span>${tool.name}</span></div>
+    <div class="tool-header">
+      <h1>${tool.name}</h1>
+      <p class="tool-desc">${tool.description}</p>
+    </div>
+
+    <div class="card interactive-container">
+      ${renderToolInteractive(tool)}
+    </div>
+
+    <div class="ad-slot" data-slot="mid-content">
+      <span>Advertisement Slot (In-Content Banner)</span>
+    </div>
+
+    <article class="card article-content" style="margin-top:24px">
+      <h2>About ${tool.name}</h2>
+      <p>${tool.seoText}</p>
+      
+      ${faqHtml ? `<h3>Frequently Asked Questions</h3><div class="faq-list">${faqHtml}</div>` : ''}
+
+      ${related.length ? `<h3>Related Tools</h3><ul class="related-list">${relatedHtml}</ul>` : ''}
+    </article>
+
+    <style>
+      .breadcrumbs { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+      .tool-header { margin-bottom: 20px; }
+      .tool-header h1 { font-size: 28px; color: #fff; margin-bottom: 6px; font-weight: 800; }
+      .tool-desc { color: var(--muted); font-size: 15px; }
+      .interactive-container { margin-bottom: 20px; }
+      .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+      .field textarea, .field input { width: 100%; }
+      .article-content h2, .article-content h3 { color: #fff; margin: 20px 0 10px; font-size: 20px; font-weight: 700; }
+      .article-content p { color: #d1d5db; line-height: 1.7; margin-bottom: 14px; font-size: 15px; }
+      .faq-item { margin-bottom: 14px; }
+      .faq-item h4 { color: #e5e7eb; font-size: 15px; margin-bottom: 4px; font-weight: 600; }
+      .faq-item p { color: var(--muted); font-size: 14px; }
+      .related-list { margin-left: 20px; color: var(--muted); font-size: 14px; }
+      .related-list li { margin-bottom: 6px; }
+    </style>
+    <script src="/public/tool-engine.js"></script>
+    <script>setupTool('${tool.type}');</script>
+  `;
+
+  res.send(baseLayout({
+    title: tool.name,
+    description: tool.description,
+    canonical: `https://qword.tech/tool/${tool.slug}`,
+    content
+  }));
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  const urls = [
+    'https://qword.tech/',
+    ...tools.map(t => `https://qword.tech/tool/${t.slug}`)
+  ];
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls.map(u => `  <url><loc>${u}</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`).join('\n')}
+</urlset>`;
+  res.header('Content-Type', 'application/xml');
+  res.send(xml);
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain');
+  res.send(`User-agent: *\nAllow: /\nSitemap: https://qword.tech/sitemap.xml\n`);
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Qword Tools running at http://0.0.0.0:${PORT}`);
+});

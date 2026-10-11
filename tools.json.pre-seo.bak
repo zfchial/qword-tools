@@ -1,0 +1,355 @@
+[
+  {
+    "slug": "text-case-converter",
+    "name": "Text Case Converter",
+    "category": "Text & Writing",
+    "description": "Convert text into UPPERCASE, lowercase, Title Case, camelCase, snake_case, kebab-case, or PascalCase.",
+    "type": "text-case",
+    "seoText": "The Text Case Converter allows quick transformation of any text into various capitalization styles. Ideal for programmers, writers, and editors who need consistent casing across titles, variables, and database keys.",
+    "faq": [
+      {"q": "What cases are supported?", "a": "Uppercase, lowercase, Title Case, sentence case, camelCase, snake_case, kebab-case, and PascalCase."},
+      {"q": "Is data stored on the server?", "a": "No, all conversions occur client-side in your web browser."}
+    ]
+  },
+  {
+    "slug": "word-and-character-counter",
+    "name": "Word & Character Counter",
+    "category": "Text & Writing",
+    "description": "Real-time count of words, characters, sentences, paragraphs, and estimated reading time.",
+    "type": "word-counter",
+    "seoText": "Monitor text length, word density, and character limits in real time. Perfect for meeting essay length requirements, social media character caps, and article reading time estimations.",
+    "faq": [
+      {"q": "How is reading time calculated?", "a": "Estimated using an average reading speed of 200 words per minute."}
+    ]
+  },
+  {
+    "slug": "lorem-ipsum-generator",
+    "name": "Lorem Ipsum Dummy Text Generator",
+    "category": "Text & Writing",
+    "description": "Generate clean placeholder text by paragraphs, sentences, or words for mockups and UI design.",
+    "type": "lorem",
+    "seoText": "Generate standard Cicero Lorem Ipsum dummy text for mockups, web layouts, and graphic design without relying on slow external generators.",
+    "faq": [
+      {"q": "Can I choose the number of paragraphs?", "a": "Yes, specify any number between 1 and 20 paragraphs."}
+    ]
+  },
+  {
+    "slug": "slug-generator",
+    "name": "URL Slug Generator",
+    "category": "Text & Writing",
+    "description": "Transform titles, article headlines, and filenames into clean, SEO-optimized URL slugs.",
+    "type": "slugify",
+    "seoText": "Convert titles and phrases into URL-friendly slugs by stripping special characters, normalizing accents, and replacing spaces with clean hyphens.",
+    "faq": [
+      {"q": "Does it remove punctuation?", "a": "Yes, all special symbols and punctuation marks are stripped automatically."}
+    ]
+  },
+  {
+    "slug": "remove-duplicate-lines",
+    "name": "Remove Duplicate Lines",
+    "category": "Text & Writing",
+    "description": "Clean up lists by eliminating duplicate rows, empty lines, and optionally sorting alphabetically.",
+    "type": "dedupe-lines",
+    "seoText": "Clean up large datasets, email lists, keywords, and code entries by removing duplicate lines instantly with optional sorting.",
+    "faq": [
+      {"q": "Does it support sorting?", "a": "Yes, you can deduplicate while keeping order or sort A-Z."}
+    ]
+  },
+  {
+    "slug": "line-sorter-and-numberer",
+    "name": "Line Sorter & Numberer",
+    "category": "Text & Writing",
+    "description": "Sort lists in alphabetical (A-Z), reverse (Z-A), or length order, and prefix line numbers.",
+    "type": "line-sort",
+    "seoText": "Organize text lines alphabetically, numerically, by length, or in reverse order. Add line numbers or prefixes with one click.",
+    "faq": [
+      {"q": "Can it sort numerically?", "a": "Yes, standard natural sorting is supported."}
+    ]
+  },
+  {
+    "slug": "find-and-replace-text",
+    "name": "Find & Replace Text",
+    "category": "Text & Writing",
+    "description": "Search and replace text strings or regular expressions across multiple paragraphs instantly.",
+    "type": "find-replace",
+    "seoText": "Quickly replace recurring words, variables, or patterns in large text blocks. Supports both plain matching and RegExp patterns.",
+    "faq": [
+      {"q": "Is regular expression matching supported?", "a": "Yes, toggle the RegExp checkbox to use regex patterns."}
+    ]
+  },
+  {
+    "slug": "string-reverser",
+    "name": "Text & String Reverser",
+    "category": "Text & Writing",
+    "description": "Reverse characters, reverse word order, or flip lines upside down.",
+    "type": "text-reverse",
+    "seoText": "Reverse any text string by character or by word. Great for testing palindrome strings, obfuscation, or creative typography.",
+    "faq": [
+      {"q": "Can I reverse words instead of letters?", "a": "Yes, toggle between character reversal and word order reversal."}
+    ]
+  },
+  {
+    "slug": "morse-code-translator",
+    "name": "Morse Code Translator",
+    "category": "Text & Writing",
+    "description": "Encode messages into International Morse Code and decode dots and dashes back into text.",
+    "type": "morse-code",
+    "seoText": "Translate plain text into International Morse Code audio patterns and decipher incoming dots and dashes back into readable text.",
+    "faq": [
+      {"q": "What symbols are used?", "a": "Standard dot (.) and dash (-) characters with slashes (/) for word boundaries."}
+    ]
+  },
+  {
+    "slug": "json-formatter-and-validator",
+    "name": "JSON Formatter & Validator",
+    "category": "Developer Tools",
+    "description": "Format, beautify, minify, and validate JSON data with clear syntax error detection.",
+    "type": "json-formatter",
+    "seoText": "Format, validate, and clean JSON payloads with customizable indentation. Instantly pinpoint missing commas, invalid brackets, and syntax errors.",
+    "faq": [
+      {"q": "Can it minify JSON for production?", "a": "Yes, click the Minify button to compress JSON to a single line."}
+    ]
+  },
+  {
+    "slug": "json-to-yaml-converter",
+    "name": "JSON to YAML Converter",
+    "category": "Developer Tools",
+    "description": "Convert JSON configuration files to YAML format and YAML back to JSON in real time.",
+    "type": "json-yaml",
+    "seoText": "Seamlessly translate Kubernetes, Docker Compose, and CI/CD configurations between JSON and human-readable YAML syntax.",
+    "faq": [
+      {"q": "Does it support arrays and nested objects?", "a": "Yes, full hierarchical structure is preserved in conversion."}
+    ]
+  },
+  {
+    "slug": "base64-encoder-decoder",
+    "name": "Base64 Text Encoder & Decoder",
+    "category": "Developer Tools",
+    "description": "Encode plain text to Base64 format or decode Base64 strings back to UTF-8 text.",
+    "type": "base64",
+    "seoText": "Encode authentication headers, data tokens, and raw strings into Base64 format, or decode encoded strings back into clean UTF-8 text.",
+    "faq": [
+      {"q": "Does it support international characters?", "a": "Yes, UTF-8 unicode encoding is fully supported."}
+    ]
+  },
+  {
+    "slug": "url-encoder-decoder",
+    "name": "URL Encoder & Decoder",
+    "category": "Developer Tools",
+    "description": "Encode text into URL percent-encoded format or decode encoded URLs back to plain text.",
+    "type": "url-encode",
+    "seoText": "Escape special query parameter characters according to RFC 3986 URI standards, or decode percent-encoded URLs back into readable text.",
+    "faq": [
+      {"q": "Why is URL encoding needed?", "a": "Special characters like spaces and ampersands must be encoded to avoid breaking URL structure."}
+    ]
+  },
+  {
+    "slug": "html-entity-encoder-decoder",
+    "name": "HTML Entity Encoder & Decoder",
+    "category": "Developer Tools",
+    "description": "Escape HTML markup characters into safe entities or decode entities back into raw HTML.",
+    "type": "html-entities",
+    "seoText": "Convert HTML characters like <, >, &, and quotes into safe entities to display code snippets without rendering them as active tags.",
+    "faq": [
+      {"q": "Can it decode numerical entities?", "a": "Yes, both named entities (&amp;) and numerical entities (&#38;) are supported."}
+    ]
+  },
+  {
+    "slug": "css-minifier-and-beautifier",
+    "name": "CSS Minifier & Beautifier",
+    "category": "Developer Tools",
+    "description": "Compress CSS stylesheets by removing whitespace, or format unreadable minified CSS cleanly.",
+    "type": "css-tool",
+    "seoText": "Optimize stylesheet sizes for faster web load times by stripping whitespace, or beautify minified CSS with clean indentation.",
+    "faq": [
+      {"q": "Does minification alter CSS rules?", "a": "No, rules and selectors remain identical; only superfluous formatting is removed."}
+    ]
+  },
+  {
+    "slug": "sql-query-formatter",
+    "name": "SQL Query Formatter & Beautifier",
+    "category": "Developer Tools",
+    "description": "Format unorganized SQL queries into clean, readable code with uppercase keywords.",
+    "type": "sql-formatter",
+    "seoText": "Beautify complex SQL SELECT, INSERT, UPDATE, and JOIN statements with standard capitalization and readable indentation.",
+    "faq": [
+      {"q": "Which SQL dialects are supported?", "a": "Standard ANSI SQL, MySQL, PostgreSQL, SQLite, and SQL Server syntax."}
+    ]
+  },
+  {
+    "slug": "docker-run-to-compose-converter",
+    "name": "Docker Run to Docker Compose Converter",
+    "category": "Developer Tools",
+    "description": "Convert complex docker run commands into clean docker-compose.yml configuration files.",
+    "type": "docker-run-compose",
+    "seoText": "Easily transform docker run CLI commands with ports, volumes, environment variables, and restart policies into valid docker-compose.yml files.",
+    "faq": [
+      {"q": "Does it parse volume mounts and ports?", "a": "Yes, -p, -v, -e, --name, and --restart flags are parsed automatically."}
+    ]
+  },
+  {
+    "slug": "user-agent-parser",
+    "name": "User-Agent Parser & Device Inspector",
+    "category": "Developer Tools",
+    "description": "Inspect your browser User-Agent string, operating system, screen resolution, and client metadata.",
+    "type": "user-agent",
+    "seoText": "Analyze User-Agent strings to identify browser version, engine family, operating system architecture, and client viewport dimensions.",
+    "faq": [
+      {"q": "Does it detect my current browser?", "a": "Yes, active browser details are prefilled automatically on page load."}
+    ]
+  },
+  {
+    "slug": "http-status-codes-reference",
+    "name": "HTTP Status Codes Quick Reference",
+    "category": "Developer Tools",
+    "description": "Searchable dictionary of HTTP status codes (2xx, 3xx, 4xx, 5xx) with RFC definitions.",
+    "type": "http-status",
+    "seoText": "Quick reference for all official HTTP response codes. Understand the difference between 401 Unauthorized, 403 Forbidden, and 502 Bad Gateway.",
+    "faq": [
+      {"q": "Are unofficial codes included?", "a": "Yes, common Cloudflare and Nginx custom codes (like 520, 521, 522) are noted."}
+    ]
+  },
+  {
+    "slug": "uuid-v4-generator",
+    "name": "UUID v4 Generator (Bulk)",
+    "category": "Security & Crypto",
+    "description": "Generate cryptographically secure version 4 Universally Unique Identifiers (UUIDs) in bulk.",
+    "type": "uuid",
+    "seoText": "Generate RFC 4122 compliant 128-bit UUID v4 strings for database keys, session IDs, and tracking tokens with cryptographic randomness.",
+    "faq": [
+      {"q": "Are these UUIDs collision-free?", "a": "The probability of a duplicate UUID v4 is virtually zero (1 in 2^122)."}
+    ]
+  },
+  {
+    "slug": "strong-password-generator",
+    "name": "Strong Password Generator",
+    "category": "Security & Crypto",
+    "description": "Create customizable, cryptographically strong random passwords with custom lengths and symbols.",
+    "type": "password-gen",
+    "seoText": "Protect your online credentials with high-entropy passwords generated using browser crypto hardware algorithms.",
+    "faq": [
+      {"q": "Are the generated passwords stored anywhere?", "a": "No, passwords are generated completely in memory and never transmitted."}
+    ]
+  },
+  {
+    "slug": "cryptographic-hash-generator",
+    "name": "Cryptographic Hash Generator",
+    "category": "Security & Crypto",
+    "description": "Compute SHA-1, SHA-256, SHA-384, and SHA-512 checksum hashes from any text input.",
+    "type": "hash-gen",
+    "seoText": "Calculate real-time cryptographic hash digests using official Web Crypto API implementations. Verify data integrity and password hashes.",
+    "faq": [
+      {"q": "Which algorithms are supported?", "a": "SHA-1, SHA-256, SHA-384, and SHA-512."}
+    ]
+  },
+  {
+    "slug": "jwt-debugger-and-decoder",
+    "name": "JWT Token Decoder & Inspector",
+    "category": "Security & Crypto",
+    "description": "Decode JSON Web Token (JWT) headers and payload claims without revealing your secret key.",
+    "type": "jwt-decoder",
+    "seoText": "Safely decode and inspect JSON Web Tokens (JWT). View expiration dates, claims, issuer details, and algorithm headers without server validation.",
+    "faq": [
+      {"q": "Is the secret key required to inspect claims?", "a": "No, JWT payload and headers are Base64URL-encoded and can be read by anyone."}
+    ]
+  },
+  {
+    "slug": "color-converter-and-picker",
+    "name": "Color Converter & HEX/RGB/HSL Picker",
+    "category": "Converters & Math",
+    "description": "Convert colors between HEX, RGB, HSL, and CMYK with a visual color picker and preview.",
+    "type": "color-converter",
+    "seoText": "Convert color formats for CSS stylesheets and graphic design. Preview color swatches and copy HEX, RGB, or HSL values instantly.",
+    "faq": [
+      {"q": "Can I pick colors visually?", "a": "Yes, use the interactive color picker box to select any shade."}
+    ]
+  },
+  {
+    "slug": "unix-timestamp-converter",
+    "name": "Unix Timestamp Converter",
+    "category": "Converters & Math",
+    "description": "Convert Unix epoch timestamps to human-readable dates and formats, or dates to epoch timestamps.",
+    "type": "timestamp",
+    "seoText": "Convert 10-digit epoch seconds and 13-digit epoch milliseconds to localized ISO 8601 date strings and vice versa.",
+    "faq": [
+      {"q": "Does it support local timezone and UTC?", "a": "Yes, both UTC and local timezone representations are displayed."}
+    ]
+  },
+  {
+    "slug": "binary-text-converter",
+    "name": "Binary Code to Text Converter",
+    "category": "Converters & Math",
+    "description": "Convert 8-bit binary code into readable text and encode plain text into binary strings.",
+    "type": "binary-text",
+    "seoText": "Translate ASCII characters to 8-bit binary sequences and decode binary strings back to readable text.",
+    "faq": [
+      {"q": "What format is used?", "a": "Standard 8-bit space-separated binary notation."}
+    ]
+  },
+  {
+    "slug": "number-base-converter",
+    "name": "Number Base Converter (Hex, Dec, Oct, Bin)",
+    "category": "Converters & Math",
+    "description": "Convert numbers between Decimal, Hexadecimal, Binary, and Octal formats with instant calculation.",
+    "type": "base-converter",
+    "seoText": "Perform conversions across standard computer numerical bases: Decimal (Base 10), Hexadecimal (Base 16), Binary (Base 2), and Octal (Base 8).",
+    "faq": [
+      {"q": "Does it support large integers?", "a": "Yes, standard BigInt precision is supported."}
+    ]
+  },
+  {
+    "slug": "px-to-rem-converter",
+    "name": "PX to REM CSS Converter",
+    "category": "Converters & Math",
+    "description": "Convert CSS pixels (px) to REM units based on customizable root font size (default 16px).",
+    "type": "px-rem",
+    "seoText": "Streamline responsive web design by converting pixel values to relative REM units based on your project's base font size.",
+    "faq": [
+      {"q": "What is the standard base font size?", "a": "Standard browser default is 16px (1rem = 16px)."}
+    ]
+  },
+  {
+    "slug": "byte-size-converter",
+    "name": "Byte Size Storage Converter",
+    "category": "Converters & Math",
+    "description": "Convert data storage sizes across Bytes, KB, MB, GB, TB, and PB in both decimal and binary formats.",
+    "type": "byte-converter",
+    "seoText": "Calculate storage values across Bytes, Kilobytes, Megabytes, Gigabytes, and Terabytes in 1000 (SI) and 1024 (IEC) formats.",
+    "faq": [
+      {"q": "What is the difference between MB and MiB?", "a": "1 MB is 1,000,000 bytes (decimal), while 1 MiB is 1,048,576 bytes (binary)."}
+    ]
+  },
+  {
+    "slug": "qr-code-generator",
+    "name": "QR Code Generator & Downloader",
+    "category": "Media & Visuals",
+    "description": "Create high-resolution QR codes for URLs, contact cards, Wi-Fi keys, and plain text with PNG download.",
+    "type": "qr-code",
+    "seoText": "Generate clean, scannable QR codes instantly from URLs, phone numbers, or arbitrary text. Download the generated code as a high-resolution PNG image.",
+    "faq": [
+      {"q": "Can I download the QR code?", "a": "Yes, you can save the QR code image directly to your device."}
+    ]
+  },
+  {
+    "slug": "svg-placeholder-image-generator",
+    "name": "SVG Placeholder Image Generator",
+    "category": "Media & Visuals",
+    "description": "Generate custom SVG placeholder images with custom dimensions, colors, and labels.",
+    "type": "svg-placeholder",
+    "seoText": "Quickly create placeholder mockup images for web development and wireframes with customizable width, height, colors, and labels.",
+    "faq": [
+      {"q": "Can I copy the SVG code directly?", "a": "Yes, you can copy the raw SVG markup or download the SVG file."}
+    ]
+  },
+  {
+    "slug": "aspect-ratio-calculator",
+    "name": "Aspect Ratio Calculator",
+    "category": "Media & Visuals",
+    "description": "Calculate image and video dimensions preserving 16:9, 4:3, 1:1, or custom aspect ratios.",
+    "type": "aspect-ratio",
+    "seoText": "Find proportional width and height for images, video players, and banners. Supports standard 16:9, 4:3, 21:9, and custom ratios.",
+    "faq": [
+      {"q": "How does it work?", "a": "Enter width or height, and the corresponding dimension is calculated automatically."}
+    ]
+  }
+]
