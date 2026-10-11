@@ -1,0 +1,12 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends libreoffice-writer python3 python3-venv python3-pip fonts-liberation fonts-crosextra-carlito && python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir pdf2docx==0.5.8 && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY docker/converter.py /opt/converter.py
+
+RUN useradd --uid 1001 --create-home converter
+USER 1001:1001
+WORKDIR /work
+ENTRYPOINT ["/opt/venv/bin/python", "/opt/converter.py"]

@@ -464,5 +464,77 @@
         "a": "Enter width or height, and the corresponding dimension is calculated automatically."
       }
     ]
+  },
+  {
+    "slug": "mp4-to-mp3-converter",
+    "name": "MP4 to MP3 Converter",
+    "category": "Converters & Math",
+    "description": "Extract the audio track from MP4 video and download it as an MP3 file.",
+    "type": "mp4-mp3",
+    "seoText": "Upload an MP4 video and extract its audio as an MP3 at a selectable bitrate. Files are processed on the server and temporary files are deleted after conversion. Maximum upload size is 100 MB.",
+    "faq": [
+      {
+        "q": "Does it work without an audio track?",
+        "a": "No. The uploaded MP4 must contain an audio stream."
+      },
+      {
+        "q": "Are uploaded videos stored?",
+        "a": "Temporary processing files are deleted when conversion finishes."
+      }
+    ]
+  },
+  {
+    "slug": "mp3-to-mp4-converter",
+    "name": "MP3 to MP4 Converter",
+    "category": "Converters & Math",
+    "description": "Create an MP4 video from an MP3 audio track with an optional cover image.",
+    "type": "mp3-mp4",
+    "seoText": "Turn an MP3 into an MP4 video using a still cover image or a plain background. Choose 720p or 1080p. Audio and images are processed on the server; temporary files are deleted after conversion.",
+    "faq": [
+      {
+        "q": "Can I add cover art?",
+        "a": "Yes. Upload a JPEG, PNG, or WebP cover image; the image is cropped to fill the selected video size."
+      },
+      {
+        "q": "Does it make an animated video?",
+        "a": "No. It combines the audio with one still image or a plain background."
+      }
+    ]
+  },
+  {
+    "slug": "docx-to-pdf-converter",
+    "name": "DOCX to PDF Converter",
+    "category": "Converters & Math",
+    "description": "Convert a Microsoft Word DOCX document into a PDF file.",
+    "type": "doc-convert",
+    "seoText": "Convert DOCX documents to PDF using LibreOffice on the server. The maximum upload is 50 MB. Fonts and complex page layouts may render differently from Microsoft Word.",
+    "faq": [
+      {
+        "q": "Is this processed in the browser?",
+        "a": "No. Documents are uploaded for server-side conversion and temporary files are deleted afterward."
+      },
+      {
+        "q": "Will the PDF look exactly like Word?",
+        "a": "Basic formatting is supported, but fonts, macros, and complex layouts can differ."
+      }
+    ]
+  },
+  {
+    "slug": "pdf-to-docx-converter",
+    "name": "PDF to DOCX Converter",
+    "category": "Converters & Math",
+    "description": "Convert a PDF document into an editable DOCX Word document.",
+    "type": "doc-convert",
+    "seoText": "Convert PDF documents into editable DOCX files. Text and simple layouts convert best; tables, columns, scanned pages, and complex graphics may need manual correction. The maximum upload is 50 MB.",
+    "faq": [
+      {
+        "q": "Can it convert scanned PDFs?",
+        "a": "Scanned image-only PDFs may not produce editable text because OCR is not included."
+      },
+      {
+        "q": "Will the original layout be preserved?",
+        "a": "Conversion is approximate; complex formatting and page layouts may change."
+      }
+    ]
   }
 ]
