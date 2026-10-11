@@ -1118,9 +1118,7 @@ function setupTool(type) {
     stage.addEventListener('pointerdown',startDrag);
     stage.addEventListener('pointermove',moveDrag);
     window.addEventListener('pointerup',endDrag);
-    stage.addEventListener('touchstart',startDrag,{passive:false});
-    stage.addEventListener('touchmove',moveDrag,{passive:false});
-    stage.addEventListener('touchend',endDrag);
+    window.addEventListener('pointercancel',endDrag);
     fileInput.addEventListener('change',async()=>{
       button.disabled=true;rect=null;
       if(bitmap)bitmap.close?.();
@@ -1161,5 +1159,66 @@ function setupTool(type) {
       const days=Math.floor((now.getTime()-birth.getTime())/86400000);
       out.innerHTML='<p style="font-size:20px;font-weight:700">'+y+' years, '+m+' months, '+d+' days</p><p>Total: '+days.toLocaleString()+' days.</p>';
     };
+  } else if (type === 'short-link') {
+    const urlInput=document.getElementById('shortUrl'),button=document.getElementById('shortBtn'),status=document.getElementById('shortStatus'),out=document.getElementById('shortOut');
+    urlInput.addEventListener('input',()=>{button.disabled=!urlInput.value.trim();});
+    urlInput.addEventListener('change',()=>{button.disabled=!urlInput.value.trim();});
+    button.disabled=!urlInput.value.trim();
+    button.addEventListener('click',()=>{
+      const url=urlInput.value.trim();if(!url)return;
+      out.innerHTML='';
+      withBusy('short',button,status,'Shortening',async()=>{
+        const res=await fetch('/api/short/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok)throw Error(data.error||'Shorten failed ('+res.status+')');
+        const link=location.origin+'/s/'+data.code;
+        out.innerHTML='';
+        const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
+        const p=document.createElement('p');p.appendChild(a);
+        const copy=document.createElement('button');copy.textContent='Copy link';copy.className='btn-secondary';copy.style.marginTop='8px';
+        copy.addEventListener('click',()=>{navigator.clipboard.writeText(link).then(()=>{copy.textContent='Copied!';setTimeout(()=>copy.textContent='Copy link',2000);});});
+        out.appendChild(p);out.appendChild(copy);
+        return 'Short link created.';
+      });
+    });
+  } else if (type === 'file-share') {
+    const fileInput=document.getElementById('shareFile'),button=document.getElementById('shareUpload'),status=document.getElementById('shareStatus'),out=document.getElementById('shareOut');
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to upload '+f.name+' ('+(f.size/1048576).toFixed(1)+' MB).';out.innerHTML='';});
+    button.addEventListener('click',()=>{
+      const file=fileInput.files?.[0];if(!file)return;
+      out.innerHTML='';
+      const progress=convertProgress('share');
+      button.disabled=true;status.textContent='';
+      progress.show();progress.set(1,'Uploading… 0%');
+      const xhr=new XMLHttpRequest();
+      xhr.open('POST','/api/share/upload',true);
+      xhr.timeout=170000;
+      xhr.upload.onprogress=(e)=>{if(e.lengthComputable&&e.total>0)progress.set(1+(e.loaded/e.total)*90,'Uploading… '+Math.round(e.loaded/e.total*100)+'%');};
+      xhr.onload=()=>{
+        button.disabled=false;
+        try{
+          const data=JSON.parse(xhr.responseText);
+          if(xhr.status>=200&&xhr.status<300){
+            progress.done('Done.');
+            const link=location.origin+'/f/'+data.id;
+            status.textContent='Upload complete. '+data.name+' ('+(data.size/1048576).toFixed(1)+' MB). Link expires in 7 days.';
+            const p=document.createElement('p');
+            const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
+            p.appendChild(a);
+            const copy=document.createElement('button');copy.textContent='Copy link';copy.className='btn-secondary';copy.style.marginTop='8px';
+            copy.addEventListener('click',()=>{navigator.clipboard.writeText(link).then(()=>{copy.textContent='Copied!';setTimeout(()=>copy.textContent='Copy link',2000);});});
+            out.appendChild(p);out.appendChild(copy);
+            setTimeout(()=>progress.hide(),4000);
+          } else {
+            progress.hide();
+            status.textContent=data.error||('Upload failed ('+xhr.status+')');
+          }
+        }catch(err){progress.hide();status.textContent='Upload failed. Try again.';}
+      };
+      xhr.onerror=()=>{button.disabled=false;progress.hide();status.textContent='Upload failed. Check your connection and retry.';};
+      xhr.ontimeout=()=>{button.disabled=false;progress.hide();status.textContent='Upload timed out.';};
+      const form=new FormData();form.append('file',file);
+      xhr.send(form);
+    });
   }
 }

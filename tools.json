@@ -968,5 +968,37 @@
         "a": "Calendar-accurate years, months, and days from the birth date to today."
       }
     ]
+  },
+  {
+    "slug": "url-shortener",
+    "name": "URL Shortener",
+    "category": "Developer Tools",
+    "description": "Shorten long URLs into short links hosted on this site.",
+    "type": "short-link",
+    "seoText": "Free URL shortener hosted on this server. Paste a long link and get a short /s/ code that redirects instantly.",
+    "faq": [
+      {
+        "q": "Do short links expire?",
+        "a": "No. Links stay active as long as this site runs."
+      }
+    ]
+  },
+  {
+    "slug": "file-share-link",
+    "name": "File Share Link",
+    "category": "Media & Visuals",
+    "description": "Upload a file up to 100 MB and get a download link valid for 7 days.",
+    "type": "file-share",
+    "seoText": "Upload any file up to 100 MB and share it with a download link. Files are stored on this server for 7 days, then deleted automatically.",
+    "faq": [
+      {
+        "q": "How long are files kept?",
+        "a": "7 days from upload, then deleted automatically."
+      },
+      {
+        "q": "What is the size limit?",
+        "a": "100 MB per file."
+      }
+    ]
   }
 ]
