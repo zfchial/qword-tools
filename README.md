@@ -18,7 +18,7 @@ A collection of practical browser-based utilities built with Next.js, TypeScript
 - Video compressor, audio cutter, and video trimmer
 - Image converter (PNG/JPEG/WebP), favicon ICO generator, and photo cropper
 - JSON to CSV converter, percentage calculator, and age calculator
-- URL shortener (/s/ codes) and file share links (up to 100 MB, 7 days)
+- URL shortener (/s/ codes) and file share links (up to 1 GB, 7 days)
 - Temp mail with auto-refresh inbox (via mail.tm API)
 - Full-page website screenshots in desktop, tablet, or mobile viewports (headless Chromium required)
 - Client-side processing for most utilities

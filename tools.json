@@ -987,9 +987,9 @@
     "slug": "file-share-link",
     "name": "File Share Link",
     "category": "Media & Visuals",
-    "description": "Upload a file up to 100 MB and get a download link valid for 7 days.",
+    "description": "Upload a file up to 1 GB and get a download link valid for 7 days.",
     "type": "file-share",
-    "seoText": "Upload any file up to 100 MB and share it with a download link. Files are stored on this server for 7 days, then deleted automatically.",
+    "seoText": "Upload any file up to 1 GB and share it with a download link. Files are stored on this server for 7 days, then deleted automatically.",
     "faq": [
       {
         "q": "How long are files kept?",
@@ -997,7 +997,7 @@
       },
       {
         "q": "What is the size limit?",
-        "a": "100 MB per file."
+        "a": "1 GB per file."
       }
     ]
   },

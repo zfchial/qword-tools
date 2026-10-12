@@ -17,6 +17,8 @@ function clearField(id) {
   if (el) el.value = '';
 }
 
+function fmtSize(bytes){const n=Number(bytes)||0;if(n>=1073741824)return (n/1073741824).toFixed(2)+' GB';if(n>=1048576)return (n/1048576).toFixed(1)+' MB';if(n>=1024)return (n/1024).toFixed(1)+' KB';return n+' B';}
+
 function convertProgress(prefix) {
   const box=document.getElementById(prefix+'Progress'),fill=document.getElementById(prefix+'ProgressFill'),text=document.getElementById(prefix+'ProgressText'),track=box?.querySelector('.convert-progress-track');
   if(!box||!fill||!text)return null;
@@ -1183,7 +1185,7 @@ function setupTool(type) {
     });
   } else if (type === 'file-share') {
     const fileInput=document.getElementById('shareFile'),button=document.getElementById('shareUpload'),status=document.getElementById('shareStatus'),out=document.getElementById('shareOut');
-    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];button.disabled=!f||f.size>100*1024*1024;status.textContent=!f?'':f.size>100*1024*1024?'File exceeds 100 MB.':'Ready to upload '+f.name+' ('+(f.size/1048576).toFixed(1)+' MB).';out.innerHTML='';});
+    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];const over=f&&f.size>1024*1024*1024;button.disabled=!f||over;status.textContent=!f?'':over?'File exceeds 1 GB.':('Ready to upload '+f.name+' ('+fmtSize(f.size)+').');out.innerHTML='';});
     button.addEventListener('click',()=>{
       const file=fileInput.files?.[0];if(!file)return;
       out.innerHTML='';
@@ -1192,7 +1194,7 @@ function setupTool(type) {
       progress.show();progress.set(1,'Uploading… 0%');
       const xhr=new XMLHttpRequest();
       xhr.open('POST','/api/share/upload',true);
-      xhr.timeout=170000;
+      xhr.timeout=850000;
       xhr.upload.onprogress=(e)=>{if(e.lengthComputable&&e.total>0)progress.set(1+(e.loaded/e.total)*90,'Uploading… '+Math.round(e.loaded/e.total*100)+'%');};
       xhr.onload=()=>{
         button.disabled=false;
@@ -1201,7 +1203,7 @@ function setupTool(type) {
           if(xhr.status>=200&&xhr.status<300){
             progress.done('Done.');
             const link=location.origin+'/f/'+data.id;
-            status.textContent='Upload complete. '+data.name+' ('+(data.size/1048576).toFixed(1)+' MB). Link expires in 7 days.';
+            status.textContent='Upload complete. '+data.name+' ('+fmtSize(data.size)+'). Link expires in 7 days.';
             const p=document.createElement('p');
             const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
             p.appendChild(a);
