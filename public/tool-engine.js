@@ -1191,36 +1191,51 @@ function setupTool(type) {
       out.innerHTML='';
       const progress=convertProgress('share');
       button.disabled=true;status.textContent='';
-      progress.show();progress.set(1,'Uploading… 0%');
-      const xhr=new XMLHttpRequest();
-      xhr.open('POST','/api/share/upload',true);
-      xhr.timeout=850000;
-      xhr.upload.onprogress=(e)=>{if(e.lengthComputable&&e.total>0)progress.set(1+(e.loaded/e.total)*90,'Uploading… '+Math.round(e.loaded/e.total*100)+'%');};
-      xhr.onload=()=>{
-        button.disabled=false;
+      progress.show();progress.set(1,'Preparing upload…');
+      const fail=(msg)=>{button.disabled=false;progress.hide();status.textContent=msg;};
+      (async()=>{
+        let init;
         try{
-          const data=JSON.parse(xhr.responseText);
-          if(xhr.status>=200&&xhr.status<300){
-            progress.done('Done.');
-            const link=location.origin+'/f/'+data.id;
-            status.textContent='Upload complete. '+data.name+' ('+fmtSize(data.size)+'). Link expires in 7 days.';
-            const p=document.createElement('p');
-            const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
-            p.appendChild(a);
-            const copy=document.createElement('button');copy.textContent='Copy link';copy.className='btn-secondary';copy.style.marginTop='8px';
-            copy.addEventListener('click',()=>{navigator.clipboard.writeText(link).then(()=>{copy.textContent='Copied!';setTimeout(()=>copy.textContent='Copy link',2000);});});
-            out.appendChild(p);out.appendChild(copy);
-            setTimeout(()=>progress.hide(),4000);
-          } else {
-            progress.hide();
-            status.textContent=data.error||('Upload failed ('+xhr.status+')');
+          const r=await fetch('/api/share/init',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,size:file.size,type:file.type})});
+          init=await r.json();
+          if(!r.ok)throw new Error(init.error||('Upload failed ('+r.status+')'));
+        }catch(err){fail(err.message||'Upload failed. Check your connection and retry.');return;}
+        const uploadId=init.uploadId,chunkSize=init.chunkSize,totalChunks=init.totalChunks;
+        for(let i=0;i<totalChunks;i++){
+          const start=i*chunkSize,end=Math.min(file.size,start+chunkSize);
+          const blob=file.slice(start,end);
+          let ok=false,attempt=0;
+          while(!ok&&attempt<3){
+            attempt++;
+            try{
+              const r=await fetch('/api/share/chunk?uploadId='+encodeURIComponent(uploadId)+'&index='+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:blob});
+              if(r.ok){ok=true;break;}
+              const d=await r.json().catch(()=>({}));
+              if(r.status===413||r.status===400&&d.error&&/invalid|expired/i.test(d.error||''))throw new Error(d.error||('Upload failed ('+r.status+')'));
+            }catch(err){if(/Invalid upload|expired|Chunk too large|limit/i.test(err.message||''))throw err;}
+            if(!ok)await new Promise(res=>setTimeout(res,1000*attempt));
           }
-        }catch(err){progress.hide();status.textContent='Upload failed. Try again.';}
-      };
-      xhr.onerror=()=>{button.disabled=false;progress.hide();status.textContent='Upload failed. Check your connection and retry.';};
-      xhr.ontimeout=()=>{button.disabled=false;progress.hide();status.textContent='Upload timed out.';};
-      const form=new FormData();form.append('file',file);
-      xhr.send(form);
+          if(!ok){fail('Upload failed on part '+(i+1)+'/'+totalChunks+'. Check your connection and retry.');return;}
+          progress.set(1+((i+1)/totalChunks)*90,'Uploading… part '+(i+1)+'/'+totalChunks+' ('+Math.round((i+1)/totalChunks*100)+'%)');
+        }
+        progress.set(95,'Finishing…');
+        try{
+          const r=await fetch('/api/share/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uploadId})});
+          const data=await r.json();
+          if(!r.ok)throw new Error(data.error||('Upload failed ('+r.status+')'));
+          progress.done('Done.');
+          const link=location.origin+'/f/'+data.id;
+          status.textContent='Upload complete. '+data.name+' ('+fmtSize(data.size)+'). Link expires in 7 days.';
+          const p=document.createElement('p');
+          const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
+          p.appendChild(a);
+          const copy=document.createElement('button');copy.textContent='Copy link';copy.className='btn-secondary';copy.style.marginTop='8px';
+          copy.addEventListener('click',()=>{navigator.clipboard.writeText(link).then(()=>{copy.textContent='Copied!';setTimeout(()=>copy.textContent='Copy link',2000);});});
+          out.appendChild(p);out.appendChild(copy);
+          button.disabled=false;
+          setTimeout(()=>progress.hide(),4000);
+        }catch(err){fail(err.message||'Upload failed. Try again.');}
+      })().catch((err)=>fail(err.message||'Upload failed. Try again.'));
     });
   } else if (type === 'temp-mail') {
     const prefixInput=document.getElementById('tmPrefix'),newBtn=document.getElementById('tmNew'),refreshBtn=document.getElementById('tmRefresh'),addrInput=document.getElementById('tmAddr'),copyBtn=document.getElementById('tmCopy'),autoBox=document.getElementById('tmAuto'),status=document.getElementById('tmStatus'),list=document.getElementById('tmList'),view=document.getElementById('tmView');
