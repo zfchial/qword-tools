@@ -75,6 +75,20 @@ function downloadBlob(blob,name) {
   setTimeout(()=>URL.revokeObjectURL(url),5000);
 }
 
+async function exportPhone(phoneId,status,filename){
+  const node=document.getElementById(phoneId);
+  if(!node){status.textContent='Preview not found.';return;}
+  if(!window.htmlToImage){status.textContent='Screenshot library still loading. Check your connection and retry.';return;}
+  node.classList.add('exporting');
+  try{
+    const dataUrl=await window.htmlToImage.toPng(node,{pixelRatio:3,cacheBust:true});
+    const a=document.createElement('a');
+    a.href=dataUrl;a.download=filename;a.click();
+    status.textContent='Screenshot downloaded ('+filename+').';
+  }catch(e){status.textContent='Export failed. Try again.';}
+  finally{node.classList.remove('exporting');}
+}
+
 async function convertWithProgress(prefix,button,status,work,filename,doneText,after){
   const progress=convertProgress(prefix);
   button.disabled=true;status.textContent='';
@@ -1926,5 +1940,155 @@ function setupTool(type) {
       const form=new FormData();form.append('file',f);form.append('pages',pages.value.trim()||'all');form.append('degrees',deg.value);
       convertWithProgress('psr',rotBtn,status,(onUpload)=>uploadWithProgress('/api/convert/pdf-rotate',form,onUpload),f.name.replace(/\.pdf$/i,'')+'-rotated.pdf','Pages rotated.');
     });
+  } else if (type === 'fake-wa') {
+    const nameIn=document.getElementById('waName'),statusIn=document.getElementById('waStatus');
+    const avaIn=document.getElementById('waAvatar'),dateIn=document.getElementById('waDate');
+    const txtIn=document.getElementById('waText'),fromSel=document.getElementById('waFrom'),timeIn=document.getElementById('waTime');
+    const addBtn=document.getElementById('waAdd'),clearBtn=document.getElementById('waClear');
+    const chat=document.getElementById('waChat'),dlBtn=document.getElementById('waDownload'),dlStatus=document.getElementById('waDlStatus');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const setAva=(el,file,letter,bg)=>{if(!file)return;const url=URL.createObjectURL(file);el.innerHTML='';const im=document.createElement('img');im.src=url;im.alt='avatar';im.style.cssText='width:100%;height:100%;object-fit:cover';el.appendChild(im);};
+    const syncHead=()=>{document.getElementById('waNameView').textContent=nameIn.value||'Sarah';document.getElementById('waStatusView').textContent=statusIn.value||'online';document.getElementById('waDateView').textContent=dateIn.value||'TODAY';};
+    [nameIn,statusIn,dateIn].forEach((el)=>el.addEventListener('input',syncHead));
+    avaIn.addEventListener('change',()=>{const f=avaIn.files?.[0];if(f)setAva(document.getElementById('waAva'),f);});
+    const addMsg=(text,from,time)=>{
+      const t=(text||'').trim();if(!t)return;
+      const b=document.createElement('div');
+      b.className='wa-b '+(from==='out'?'wa-out':'wa-in');
+      b.innerHTML=`<span contenteditable style="flex:1;word-break:break-word">${esc(t)}</span><span class="wa-meta"><span contenteditable>${esc(time||'09:41')}</span>${from==='out'?'<span class="wa-tick">✓✓</span>':''}</span><button class="delbtn no-export" title="Delete">×</button>`;
+      b.querySelector('.delbtn').addEventListener('click',()=>b.remove());
+      chat.appendChild(b);
+    };
+    addBtn.addEventListener('click',()=>{addMsg(txtIn.value,fromSel.value,timeIn.value);txtIn.value='';txtIn.focus();});
+    txtIn.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();addBtn.click();}});
+    clearBtn.addEventListener('click',()=>{chat.querySelectorAll('.wa-b').forEach((b)=>b.remove());});
+    dlBtn.addEventListener('click',()=>exportPhone('waPhone',dlStatus,'fake-whatsapp-chat.png'));
+    addMsg('Hey! Are we still on for tonight? 🎬','in','09:12');
+    addMsg('Yes! Pick you up at 7 🕖','out','09:15');
+    addMsg('Perfect, see you then!!','in','09:16');
+  } else if (type === 'fake-ig') {
+    const user=document.getElementById('igUser'),time=document.getElementById('igTime'),likes=document.getElementById('igLikes');
+    const avaIn=document.getElementById('igAvatar'),photoIn=document.getElementById('igPhoto'),verified=document.getElementById('igVerified');
+    const caption=document.getElementById('igCaption'),cUser=document.getElementById('igCUser'),cText=document.getElementById('igCText');
+    const addC=document.getElementById('igAddC'),comments=document.getElementById('igComments');
+    const dlBtn=document.getElementById('igDownload'),dlStatus=document.getElementById('igDlStatus');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const setImg=(file,wrapAsImg,placeholder)=>{
+      const url=URL.createObjectURL(file);
+      const host=document.getElementById(wrapAsImg);
+      host.innerHTML='';
+      const im=document.createElement('img');im.src=url;im.alt=placeholder;
+      if(wrapAsImg==='igAva'){im.style.cssText='width:100%;height:100%;object-fit:cover';}
+      host.appendChild(im);
+    };
+    const sync=()=>{
+      document.getElementById('igUserView').textContent=user.value||'user';
+      document.querySelector('#igPhone strong[contenteditable]').textContent=user.value||'user';
+      document.getElementById('igTimeView').textContent=time.value||'';
+      document.getElementById('igLikesView').textContent=likes.value||'0';
+      document.getElementById('igCaptionView').textContent=caption.value||'';
+      document.getElementById('igBadge').style.display=verified.checked?'':'none';
+      const ava=document.getElementById('igAva');
+      if(!ava.querySelector('img'))ava.textContent=(user.value||'u').trim().charAt(0).toLowerCase();
+    };
+    [user,time,likes,caption].forEach((el)=>el.addEventListener('input',sync));
+    verified.addEventListener('change',sync);
+    avaIn.addEventListener('change',()=>{const f=avaIn.files?.[0];if(f)setImg(f,'igAva','profile');});
+    photoIn.addEventListener('change',()=>{const f=photoIn.files?.[0];if(f)setImg(f,'igPhotoView','post');});
+    const addComment=(u,t)=>{
+      if(!(t||'').trim())return;
+      const row=document.createElement('div');
+      row.className='ig-c';
+      row.innerHTML=`<strong contenteditable>${esc(u||user.value||'user')}</strong><span contenteditable style="flex:1">${esc(t)}</span><button class="delbtn no-export">×</button>`;
+      row.querySelector('.delbtn').addEventListener('click',()=>row.remove());
+      comments.appendChild(row);
+    };
+    addC.addEventListener('click',()=>{addComment(cUser.value,cText.value);cText.value='';cText.focus();});
+    dlBtn.addEventListener('click',()=>exportPhone('igPhone',dlStatus,'fake-instagram-post.png'));
+    addComment('mike.jpg','This is unreal 😍');
+    addComment('travel.ana','Take me there!! ✈️');
+  } else if (type === 'fake-fb') {
+    const name=document.getElementById('fbName'),time=document.getElementById('fbTime'),text=document.getElementById('fbText');
+    const bg=document.getElementById('fbBg'),photoIn=document.getElementById('fbPhoto'),avaIn=document.getElementById('fbAvatar');
+    const likes=document.getElementById('fbLikes'),cmts=document.getElementById('fbComments'),shares=document.getElementById('fbShares');
+    const dlBtn=document.getElementById('fbDownload'),dlStatus=document.getElementById('fbDlStatus');
+    const sync=()=>{
+      document.getElementById('fbNameView').textContent=name.value||'User';
+      document.getElementById('fbTimeView').textContent=time.value||'';
+      const tv=document.getElementById('fbTextView');
+      tv.textContent=text.value||'';
+      if(bg.value){tv.className='fb-bgtext';tv.style.background=bg.value;}
+      else{tv.className='fb-text';tv.style.background='';}
+      document.getElementById('fbLikesView').textContent=likes.value||'0';
+      document.getElementById('fbCommentsView').textContent=cmts.value||'0';
+      document.getElementById('fbSharesView').textContent=shares.value||'0';
+      const ava=document.getElementById('fbAva');
+      if(!ava.querySelector('img'))ava.textContent=(name.value||'U').trim().charAt(0).toUpperCase();
+    };
+    [name,time,text,likes,cmts,shares].forEach((el)=>el.addEventListener('input',sync));
+    bg.addEventListener('change',sync);
+    avaIn.addEventListener('change',()=>{const f=avaIn.files?.[0];if(!f)return;const host=document.getElementById('fbAva');host.innerHTML='';const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='avatar';im.style.cssText='width:100%;height:100%;object-fit:cover';host.appendChild(im);});
+    photoIn.addEventListener('change',()=>{
+      const f=photoIn.files?.[0],view=document.getElementById('fbPhotoView'),hint=document.getElementById('fbPhotoWrap');
+      view.innerHTML='';
+      if(!f){hint.style.display='';return;}
+      hint.style.display='none';
+      const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='post photo';
+      view.appendChild(im);
+    });
+    dlBtn.addEventListener('click',()=>exportPhone('fbPhone',dlStatus,'fake-facebook-post.png'));
+    sync();
+  } else if (type === 'fake-threads') {
+    const name=document.getElementById('thName'),handle=document.getElementById('thHandle'),time=document.getElementById('thTime');
+    const text=document.getElementById('thText'),avaIn=document.getElementById('thAvatar'),photoIn=document.getElementById('thPhoto');
+    const likes=document.getElementById('thLikes'),replies=document.getElementById('thReplies');
+    const dlBtn=document.getElementById('thDownload'),dlStatus=document.getElementById('thDlStatus');
+    const sync=()=>{
+      document.getElementById('thNameView').textContent=name.value||'User';
+      document.getElementById('thHandleView').textContent=handle.value||'user';
+      document.getElementById('thTimeView').textContent=time.value||'';
+      document.getElementById('thTextView').textContent=text.value||'';
+      document.getElementById('thLikesView').textContent=likes.value||'0';
+      document.getElementById('thRepliesView').textContent=replies.value||'';
+      const ava=document.getElementById('thAva');
+      if(!ava.querySelector('img'))ava.textContent=(name.value||'U').trim().charAt(0).toUpperCase();
+    };
+    [name,handle,time,text,likes,replies].forEach((el)=>el.addEventListener('input',sync));
+    avaIn.addEventListener('change',()=>{const f=avaIn.files?.[0];if(!f)return;const host=document.getElementById('thAva');host.innerHTML='';const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='avatar';im.style.cssText='width:100%;height:100%;object-fit:cover';host.appendChild(im);});
+    photoIn.addEventListener('change',()=>{
+      const f=photoIn.files?.[0],view=document.getElementById('thPhotoView'),hint=document.getElementById('thPhotoHint');
+      view.innerHTML='';view.style.border='';
+      if(!f){hint.style.display='';return;}
+      hint.style.display='none';view.style.border='1px solid #eee';
+      const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='post photo';
+      view.appendChild(im);
+    });
+    dlBtn.addEventListener('click',()=>exportPhone('thPhone',dlStatus,'fake-threads-post.png'));
+    sync();
+  } else if (type === 'fake-x') {
+    const dark=document.getElementById('xDark'),name=document.getElementById('xName'),handle=document.getElementById('xHandle');
+    const avaIn=document.getElementById('xAvatar'),verified=document.getElementById('xVerified'),text=document.getElementById('xText');
+    const when=document.getElementById('xWhen'),views=document.getElementById('xViews');
+    const replies=document.getElementById('xReplies'),reposts=document.getElementById('xReposts'),likeIn=document.getElementById('xLikes');
+    const dlBtn=document.getElementById('xDownload'),dlStatus=document.getElementById('xDlStatus');
+    const sync=()=>{
+      document.getElementById('xPhone').classList.toggle('x-dark',dark.checked);
+      document.getElementById('xNameView').textContent=name.value||'User';
+      document.getElementById('xHandleView').textContent=(handle.value||'user').replace(/^@/,'');
+      document.getElementById('xBadge').style.display=verified.checked?'':'none';
+      document.getElementById('xTextView').textContent=text.value||'';
+      document.getElementById('xWhenView').textContent=when.value||'';
+      document.getElementById('xViewsView').textContent=views.value||'0';
+      document.getElementById('xRepliesView').textContent=replies.value||'0';
+      document.getElementById('xRepostsView').textContent=reposts.value||'0';
+      document.getElementById('xLikesView').textContent=likeIn.value||'0';
+      const ava=document.getElementById('xAva');
+      if(!ava.querySelector('img'))ava.textContent=(name.value||'U').trim().charAt(0).toUpperCase();
+    };
+    [dark,name,handle,verified,text,when,views,replies,reposts,likeIn].forEach((el)=>el.addEventListener('input',sync));
+    dark.addEventListener('change',sync);
+    avaIn.addEventListener('change',()=>{const f=avaIn.files?.[0];if(!f)return;const host=document.getElementById('xAva');host.innerHTML='';const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='avatar';im.style.cssText='width:100%;height:100%;object-fit:cover';host.appendChild(im);});
+    dlBtn.addEventListener('click',()=>exportPhone('xPhone',dlStatus,'fake-x-post.png'));
+    sync();
   }
 }

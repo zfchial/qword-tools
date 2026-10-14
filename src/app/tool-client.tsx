@@ -9,10 +9,15 @@ function initializeTool(type: string) {
   (window as Window & { setupTool?: (type: string) => void }).setupTool?.(type);
 }
 
+const SHOT_TYPES = new Set(["fake-wa", "fake-ig", "fake-fb", "fake-threads", "fake-x"]);
+
 export default function ToolClient({ tool, markup, related }: { tool: Tool; markup: string; related: Tool[] }) {
   useEffect(() => { initializeTool(tool.type); }, [tool.type]);
   return <>
-    <Script src="/tool-engine.js?v=12" strategy="afterInteractive" onReady={() => initializeTool(tool.type)} />
+    <Script src="/tool-engine.js?v=13" strategy="afterInteractive" onReady={() => initializeTool(tool.type)} />
+    {SHOT_TYPES.has(tool.type) && (
+      <Script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js" strategy="afterInteractive" />
+    )}
     <nav aria-label="Breadcrumb" className="breadcrumbs mb-5 text-xs"><Link href="/">Home</Link><span aria-hidden="true"> / </span><span>{tool.category}</span><span aria-hidden="true"> / </span><span>{tool.name}</span></nav>
     <header className="tool-heading mb-6"><h1 className="text-3xl font-bold tracking-tight md:text-4xl">{tool.name}</h1><p className="tool-description mt-2 max-w-3xl">{tool.description}</p></header>
     <section aria-label={`${tool.name} interface`} className="tool-panel rounded-xl border p-5 shadow-sm md:p-7" dangerouslySetInnerHTML={{ __html: markup }} />

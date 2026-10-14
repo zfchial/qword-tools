@@ -1220,5 +1220,95 @@
         "a": "Yes — enter the second discount and it applies to the already-discounted price, like real stores do."
       }
     ]
+  },
+  {
+    "slug": "fake-whatsapp-chat",
+    "name": "Fake WhatsApp Chat Generator",
+    "category": "Media & Visuals",
+    "description": "Create realistic WhatsApp chat screenshots on an iPhone frame — custom name, messages, ticks, and download as PNG.",
+    "type": "fake-wa",
+    "seoText": "Free fake WhatsApp chat generator. Build realistic WhatsApp conversation screenshots inside an iPhone frame: custom contact name and avatar, incoming and outgoing bubbles, blue double ticks, timestamps, and date chips. Edit everything inline, then download a high-resolution PNG. Perfect for pranks, stories, presentations, and video makers. Nothing is posted anywhere.",
+    "faq": [
+      {
+        "q": "Is anything actually sent on WhatsApp?",
+        "a": "No. This only creates a static screenshot image in your browser. Nobody receives any message."
+      },
+      {
+        "q": "Can I use my own profile photo?",
+        "a": "Yes. Upload any image as the contact avatar, or keep the default initial avatar."
+      }
+    ]
+  },
+  {
+    "slug": "fake-instagram-post",
+    "name": "Fake Instagram Post Generator",
+    "category": "Media & Visuals",
+    "description": "Design Instagram post screenshots on iPhone — custom username, photo, likes, caption, and comments. PNG export.",
+    "type": "fake-ig",
+    "seoText": "Free fake Instagram post generator. Mock up an Instagram post inside an iPhone frame: custom username with verified badge, profile photo, your own picture, like count, caption, and comments. Download a crisp PNG for pranks, mockups, and content planning. Nothing is posted to Instagram.",
+    "faq": [
+      {
+        "q": "Will this post to my Instagram?",
+        "a": "No. It only renders a screenshot image locally in your browser."
+      },
+      {
+        "q": "Can I add a verified badge?",
+        "a": "Yes — toggle the verified checkbox next to the username field."
+      }
+    ]
+  },
+  {
+    "slug": "fake-facebook-post",
+    "name": "Fake Facebook Post Generator",
+    "category": "Media & Visuals",
+    "description": "Mock up Facebook posts on an iPhone frame — text with colorful backgrounds or photos, likes, comments, shares.",
+    "type": "fake-fb",
+    "seoText": "Free fake Facebook post generator. Create convincing Facebook post screenshots on an iPhone frame: plain or colorful-background text posts, optional photo, custom like/comment/share counts. Export as PNG for jokes, mockups, and storyboards. Nothing is published to Facebook.",
+    "faq": [
+      {
+        "q": "Does this publish to Facebook?",
+        "a": "No. Everything stays in your browser as a downloadable image."
+      },
+      {
+        "q": "Can I make those big colorful text posts?",
+        "a": "Yes — pick any gradient background for the post text, just like real Facebook."
+      }
+    ]
+  },
+  {
+    "slug": "fake-threads-post",
+    "name": "Fake Threads Post Generator",
+    "category": "Media & Visuals",
+    "description": "Create Threads post screenshots on iPhone — avatar, handle, text, photo, likes and replies. Export PNG.",
+    "type": "fake-threads",
+    "seoText": "Free fake Threads post generator. Design a Threads post inside an iPhone frame with custom name, handle, text, optional photo, and like/reply counts. Download a high-resolution PNG. Great for jokes and content mockups — nothing is posted to Threads.",
+    "faq": [
+      {
+        "q": "Is this connected to Threads?",
+        "a": "No. It is a local screenshot mockup tool; nothing is shared anywhere."
+      },
+      {
+        "q": "Can I attach a photo?",
+        "a": "Yes — upload one image and it appears below the text with rounded corners, like a real Threads post."
+      }
+    ]
+  },
+  {
+    "slug": "fake-x-post",
+    "name": "Fake X (Twitter) Post Generator",
+    "category": "Media & Visuals",
+    "description": "Mock up X/Twitter posts on an iPhone frame — name, handle, verified badge, counts, dark or light. PNG export.",
+    "type": "fake-x",
+    "seoText": "Free fake X (Twitter) post generator. Build a realistic tweet screenshot on an iPhone frame: display name, handle, verified badge, post text, timestamp, views, and reply/repost/like counts, in light or dark mode. Export a sharp PNG. Nothing is posted to X.",
+    "faq": [
+      {
+        "q": "Will this tweet from my account?",
+        "a": "No. It only creates a local screenshot image — your X account is never touched."
+      },
+      {
+        "q": "Is dark mode available?",
+        "a": "Yes — switch between light and dark X themes with one toggle."
+      }
+    ]
   }
 ]
