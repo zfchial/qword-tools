@@ -1,83 +1,116 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  SHARE_ID_RE,
+  SHARE_MAX_AGE,
+  ShareEntry,
+  esc,
+  fileIcon,
+  fmtSize,
+  kindOf,
+  previewHtml,
+  safeMime,
+  safeName,
+  sendFile,
+  shareRoot,
+  shellPage,
+} from "@/lib/share";
 
 export const runtime = "nodejs";
 
-const MAX_AGE = 7 * 24 * 3600 * 1000;
+type Meta = Record<string, ShareEntry>;
 
-function esc(s: string) {
-  return s.replace(/[<>&"]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" })[c] || c);
-}
-
-function shell(inner: string, title: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} | Qword Tools</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f4f5ef;color:#17221d;font-family:Arial,Helvetica,sans-serif;padding:24px}@media(prefers-color-scheme:dark){body{background:#101612;color:#e8eee9}}.card{max-width:520px;width:100%;background:#fff;border:1px solid #dce4dc;border-radius:16px;padding:36px 32px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.08)}@media(prefers-color-scheme:dark){.card{background:#1a211c;border-color:#344238}}.icon{font-size:52px;line-height:1;margin-bottom:12px}h1{font-size:24px;margin:0 0 10px}p{color:#4b5850;font-size:15px;line-height:1.7;margin:0 0 8px}@media(prefers-color-scheme:dark){p{color:#c2cdc4}}.btn{display:inline-block;margin-top:20px;background:#315f40;color:#fff!important;font-weight:700;padding:12px 28px;border-radius:10px;text-decoration:none}@media(prefers-color-scheme:dark){.btn{background:#a3d9b1;color:#101612!important}}.small{font-size:13px;margin-top:14px}.mono{font-family:monospace;word-break:break-all}</style></head><body><div class="card">${inner}</div></body></html>`;
-}
-
-function htmlPage(inner: string, title: string, status: number) {
-  return new Response(shell(inner, title), {
-    status,
-    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
-  });
-}
-
-export async function GET(_request: Request, ctx: { params: Promise<{ id: string }> }) {
-  const { id } = await ctx.params;
-  if (!/^[A-Za-z0-9_-]{6,16}$/.test(id)) {
-    return htmlPage(
-      `<div class="icon">🔍</div><h1>Link not found</h1><p>This download link doesn't exist. It may have been typed incorrectly, never uploaded, or already deleted.</p><a class="btn" href="/tool/file-share-link">Upload a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p>`,
-      "Link not found",
-      404,
-    );
-  }
-  const dir = path.join(process.cwd(), "data", "share");
-  const metaPath = path.join(dir, "meta.json");
-  let meta: Record<string, { name: string; size: number; created: number }>;
+async function loadMeta(): Promise<Meta> {
   try {
-    meta = JSON.parse(await readFile(metaPath, "utf8"));
+    return JSON.parse(await readFile(path.join(shareRoot(), "meta.json"), "utf8"));
   } catch {
-    return htmlPage(
-      `<div class="icon">🔍</div><h1>File unavailable</h1><p>This file could not be found on the server. It may have expired or been deleted during cleanup.</p><p class="small mono">Link ID: ${esc(id)}</p><a class="btn" href="/tool/file-share-link">Upload a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p>`,
-      "File unavailable",
-      404,
-    );
+    return {};
   }
+}
+
+async function saveMeta(meta: Meta) {
+  await writeFile(path.join(shareRoot(), "meta.json"), JSON.stringify(meta), { mode: 0o600 }).catch(() => undefined);
+}
+
+function notFoundPage(id: string, title: string, text: string, status: number) {
+  return shellPage(
+    `<div class="icon">🔍</div><h1>${title}</h1><p class="meta">${text}</p><p class="small mono">Link ID: ${esc(id)}</p><div class="center"><a class="btn" href="/tool/file-share-link">Upload a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p></div>`,
+    title,
+    status,
+  );
+}
+
+export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  if (!SHARE_ID_RE.test(id)) return notFoundPage(id, "Link not found", "This download link doesn't exist.", 404);
+  const url = new URL(request.url);
+  const wantRaw = url.searchParams.get("raw") === "1";
+  const wantDl = url.searchParams.get("dl") === "1";
+
+  const meta = await loadMeta();
   const m = meta[id];
-  if (!m) {
-    return htmlPage(
-      `<div class="icon">🔍</div><h1>Link not found</h1><p>This file is no longer available. It may have expired (files are kept for 7 days) or been removed.</p><p class="small mono">Link ID: ${esc(id)}</p><a class="btn" href="/tool/file-share-link">Upload a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p>`,
-      "Link not found",
-      404,
-    );
-  }
-  if (Date.now() - m.created > MAX_AGE) {
-    const days = Math.floor((Date.now() - m.created) / (24 * 3600 * 1000));
-    await rm(path.join(dir, id), { force: true }).catch(() => undefined);
+  if (!m) return notFoundPage(id, "Link not found", "This file is no longer available. It may have expired (files are kept for 7 days) or been removed.", 404);
+
+  const created = Number(m.created) || 0;
+  if (Date.now() - created > SHARE_MAX_AGE) {
+    const days = Math.floor((Date.now() - created) / (24 * 3600 * 1000));
+    await rm(path.join(shareRoot(), id), { recursive: true, force: true }).catch(() => undefined);
     delete meta[id];
-    await writeFile(metaPath, JSON.stringify(meta), { mode: 0o600 }).catch(() => undefined);
-    return htmlPage(
-      `<div class="icon">⏳</div><h1>This link has expired</h1><p>The file <strong>${esc(String(m.name || "file"))}</strong> was shared more than 7 days ago (${days} days) and has been deleted automatically.</p><p>Ask the sender to upload it again, or share a new file yourself — free up to 1 GB.</p><a class="btn" href="/tool/file-share-link">Share a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p>`,
+    await saveMeta(meta);
+    return shellPage(
+      `<div class="icon">⏳</div><h1>This link has expired</h1><p class="meta">This share was created more than 7 days ago (${days} days) and has been deleted automatically.</p><p class="meta">Ask the sender to upload it again, or share a new file yourself — free up to 1 GB.</p><div class="center"><a class="btn" href="/tool/file-share-link">Share a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p></div>`,
       "Link expired",
       410,
     );
   }
-  let data: Buffer;
-  try {
-    data = await readFile(path.join(dir, id));
-  } catch {
-    delete meta[id];
-    await writeFile(metaPath, JSON.stringify(meta), { mode: 0o600 }).catch(() => undefined);
-    return htmlPage(
-      `<div class="icon">🔍</div><h1>File unavailable</h1><p>The file data is missing on the server even though the link record exists. It was likely removed during cleanup.</p><p class="small mono">Link ID: ${esc(id)}</p><a class="btn" href="/tool/file-share-link">Upload a new file</a><p class="small"><a href="/">← Back to Qword Tools</a></p>`,
-      "File unavailable",
-      404,
+
+  // ---- Folder share: direktori berisi N file ----
+  if (m.folder) {
+    const files = Array.isArray(m.files) ? m.files : [];
+    if (wantRaw || wantDl) {
+      // /f/<folder>?raw=1 tanpa index tidak valid — arahkan ke halaman preview.
+      return Response.redirect(new URL(`/f/${id}`, url.origin).toString(), 302);
+    }
+    const rows = files
+      .map((f, n) => {
+        const mime = safeMime(f.type);
+        const name = safeName(f.name);
+        const pv = previewHtml(mime, `/f/${id}/${n}?raw=1`, name);
+        const body = pv
+          ? `<div class="fpreview">${pv}</div>`
+          : `<div class="nopreview">No preview available for this file type — download to view it.</div>`;
+        return `<li><details><summary><span style="font-size:22px">${fileIcon(mime)}</span><span class="fname">${esc(name)}</span><span class="fsize">${esc(fmtSize(f.size))}</span></summary>${body}<div class="frow-actions"><a class="mini" href="/f/${id}/${n}?dl=1">⬇ Download</a><a class="mini" href="/f/${id}/${n}?raw=1" target="_blank" rel="noopener">↗ Open</a></div></details></li>`;
+      })
+      .join("");
+    return shellPage(
+      `<div class="icon">📁</div><h1>Shared folder · ${files.length} file${files.length === 1 ? "" : "s"}</h1><p class="meta">${esc(fmtSize(m.size))} total · expires 7 days after upload · click a file to preview</p><ul class="filelist">${rows || `<li><p class="meta">This folder is empty.</p></li>`}</ul><div class="center"><p class="small"><a href="/">← Back to Qword Tools</a></p></div>`,
+      `Shared folder (${files.length} files)`,
     );
   }
-  const name = String(m.name || "file").replace(/[\r\n"\\]/g, "_");
-  return new Response(new Uint8Array(data), {
-    headers: {
-      "Content-Type": "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${name}"`,
-      "Cache-Control": "private, max-age=3600",
-    },
-  });
+
+  // ---- Single file share ----
+  const mime = safeMime(m.type);
+  const name = safeName(m.name);
+  const absPath = path.join(shareRoot(), id);
+  if (wantRaw || wantDl) {
+    const res = await sendFile(absPath, {
+      mime,
+      filename: name,
+      download: wantDl,
+      rangeHeader: request.headers.get("range"),
+    });
+    if (!res) {
+      delete meta[id];
+      await saveMeta(meta);
+      return notFoundPage(id, "File unavailable", "The file data is missing on the server even though the link record exists.", 404);
+    }
+    return res;
+  }
+  const pv = previewHtml(mime, `/f/${id}?raw=1`, name);
+  const kindLabel =
+    kindOf(mime) === "other" ? "Download this file to view it." : kindOf(mime) === "video" ? "Watch it right here, or download it below." : "Preview it right here, or download it below.";
+  return shellPage(
+    `<div class="icon">${fileIcon(mime)}</div><h1>${esc(name)}</h1><p class="meta">${esc(fmtSize(m.size))} · ${esc(mime)} · expires 7 days after upload</p><p class="meta">${kindLabel}</p>${pv}<div class="center"><a class="btn" href="/f/${id}?dl=1">⬇ Download${m.size ? ` (${esc(fmtSize(m.size))})` : ""}</a><div><a class="btn-secondary" href="/f/${id}?raw=1" target="_blank" rel="noopener">↗ Open in browser</a></div><p class="small"><a href="/">← Back to Qword Tools</a></p></div>`,
+    name,
+  );
 }

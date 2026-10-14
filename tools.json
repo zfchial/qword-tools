@@ -987,9 +987,9 @@
     "slug": "file-share-link",
     "name": "File Share Link",
     "category": "Media & Visuals",
-    "description": "Upload a file up to 1 GB and get a download link valid for 7 days.",
+    "description": "Share one file or up to 10 files as a folder (1 GB total). Recipients get a preview page — videos play, images show inline.",
     "type": "file-share",
-    "seoText": "Upload any file up to 1 GB and share it with a download link. Files are stored on this server for 7 days, then deleted automatically.",
+    "seoText": "Upload one file or up to 10 files as a single folder link (1 GB total). Recipients see a preview page first: videos play in the browser, images, audio, and PDFs render inline, then they download what they choose. Files are stored for 7 days, then deleted automatically.",
     "faq": [
       {
         "q": "How long are files kept?",
@@ -997,7 +997,11 @@
       },
       {
         "q": "What is the size limit?",
-        "a": "1 GB per file."
+        "a": "1 GB total per link, up to 10 files shared as one folder link."
+      },
+      {
+        "q": "Can recipients preview before downloading?",
+        "a": "Yes. The link opens a preview page: videos play, images, audio, and PDFs render in the browser. The recipient clicks download only for what they want."
       }
     ]
   },

@@ -30,7 +30,7 @@ async function sweep(meta: Meta) {
   let dirty = false;
   for (const [id, m] of Object.entries(meta)) {
     if (now - m.created > MAX_AGE) {
-      await rm(path.join(dir, id), { force: true });
+      await rm(path.join(dir, id), { recursive: true, force: true });
       delete meta[id];
       dirty = true;
     }
@@ -42,8 +42,8 @@ async function sweep(meta: Meta) {
       const p = path.join(dir, f);
       const { stat } = await import("node:fs/promises");
       const st = await stat(p).catch(() => undefined);
-      if (st && st.isFile() && now - st.mtimeMs > 3600 * 1000) {
-        await rm(p, { force: true });
+      if (st && now - st.mtimeMs > 3600 * 1000) {
+        await rm(p, { recursive: true, force: true });
       }
     }
   } catch {

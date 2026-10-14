@@ -1184,57 +1184,100 @@ function setupTool(type) {
       });
     });
   } else if (type === 'file-share') {
-    const fileInput=document.getElementById('shareFile'),button=document.getElementById('shareUpload'),status=document.getElementById('shareStatus'),out=document.getElementById('shareOut');
-    fileInput.addEventListener('change',()=>{const f=fileInput.files?.[0];const over=f&&f.size>1024*1024*1024;button.disabled=!f||over;status.textContent=!f?'':over?'File exceeds 1 GB.':('Ready to upload '+f.name+' ('+fmtSize(f.size)+').');out.innerHTML='';});
+    const fileInput=document.getElementById('shareFile'),button=document.getElementById('shareUpload'),status=document.getElementById('shareStatus'),out=document.getElementById('shareOut'),list=document.getElementById('shareList');
+    const MAX_ONE=1024*1024*1024,MAX_FILES=10;
+    const sel=()=>Array.from(fileInput.files||[]);
+    const renderList=(files)=>{
+      if(!list)return;
+      if(!files.length){list.innerHTML='';return;}
+      list.innerHTML='';
+      const ul=document.createElement('ul');
+      ul.style.cssText='list-style:none;margin:0;padding:0;display:grid;gap:6px';
+      files.forEach((f)=>{
+        const li=document.createElement('li');
+        li.style.cssText='font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;word-break:break-all';
+        li.textContent=f.name+' ('+fmtSize(f.size)+')';
+        ul.appendChild(li);
+      });
+      list.appendChild(ul);
+    };
+    fileInput.addEventListener('change',()=>{
+      const files=sel();out.innerHTML='';
+      let msg='',ok=true;
+      if(!files.length){ok=false;}
+      else if(files.length>MAX_FILES){ok=false;msg='Pick at most '+MAX_FILES+' files.';}
+      else{
+        let total=0;
+        for(const f of files){total+=f.size;if(f.size>MAX_ONE){ok=false;msg='"'+f.name+'" exceeds 1 GB.';break;}}
+        if(ok&&total>MAX_ONE){ok=false;msg='Total size exceeds 1 GB ('+fmtSize(total)+').';}
+        if(ok)msg=files.length===1?('Ready to upload '+files[0].name+' ('+fmtSize(files[0].size)+').'):('Ready to upload '+files.length+' files ('+fmtSize(total)+') as one folder link.');
+      }
+      button.disabled=!ok;status.textContent=msg;renderList(files);
+    });
+    const uploadOne=async(file,onPart)=>{
+      const r=await fetch('/api/share/init',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,size:file.size,type:file.type})});
+      const init=await r.json();
+      if(!r.ok)throw new Error(init.error||('Upload failed ('+r.status+')'));
+      const uploadId=init.uploadId,chunkSize=init.chunkSize,totalChunks=init.totalChunks;
+      for(let i=0;i<totalChunks;i++){
+        const blob=file.slice(i*chunkSize,Math.min(file.size,i*chunkSize+chunkSize));
+        let ok=false,attempt=0;
+        while(!ok&&attempt<3){
+          attempt++;
+          try{
+            const rr=await fetch('/api/share/chunk?uploadId='+encodeURIComponent(uploadId)+'&index='+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:blob});
+            if(rr.ok){ok=true;break;}
+            const d=await rr.json().catch(()=>({}));
+            if(rr.status===413||rr.status===400&&d.error&&/invalid|expired/i.test(d.error||''))throw new Error(d.error||('Upload failed ('+rr.status+')'));
+          }catch(err){if(/Invalid upload|expired|Chunk too large|limit/i.test(err.message||''))throw err;}
+          if(!ok)await new Promise(res=>setTimeout(res,1000*attempt));
+        }
+        if(!ok)throw new Error('Upload failed on part '+(i+1)+'/'+totalChunks+' of '+file.name+'. Check your connection and retry.');
+        onPart((i+1)/totalChunks);
+      }
+      return uploadId;
+    };
     button.addEventListener('click',()=>{
-      const file=fileInput.files?.[0];if(!file)return;
+      const files=sel();if(!files.length||button.disabled)return;
       out.innerHTML='';
       const progress=convertProgress('share');
       button.disabled=true;status.textContent='';
       progress.show();progress.set(1,'Preparing upload…');
       const fail=(msg)=>{button.disabled=false;progress.hide();status.textContent=msg;};
       (async()=>{
-        let init;
-        try{
-          const r=await fetch('/api/share/init',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:file.name,size:file.size,type:file.type})});
-          init=await r.json();
-          if(!r.ok)throw new Error(init.error||('Upload failed ('+r.status+')'));
-        }catch(err){fail(err.message||'Upload failed. Check your connection and retry.');return;}
-        const uploadId=init.uploadId,chunkSize=init.chunkSize,totalChunks=init.totalChunks;
-        for(let i=0;i<totalChunks;i++){
-          const start=i*chunkSize,end=Math.min(file.size,start+chunkSize);
-          const blob=file.slice(start,end);
-          let ok=false,attempt=0;
-          while(!ok&&attempt<3){
-            attempt++;
-            try{
-              const r=await fetch('/api/share/chunk?uploadId='+encodeURIComponent(uploadId)+'&index='+i,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:blob});
-              if(r.ok){ok=true;break;}
-              const d=await r.json().catch(()=>({}));
-              if(r.status===413||r.status===400&&d.error&&/invalid|expired/i.test(d.error||''))throw new Error(d.error||('Upload failed ('+r.status+')'));
-            }catch(err){if(/Invalid upload|expired|Chunk too large|limit/i.test(err.message||''))throw err;}
-            if(!ok)await new Promise(res=>setTimeout(res,1000*attempt));
-          }
-          if(!ok){fail('Upload failed on part '+(i+1)+'/'+totalChunks+'. Check your connection and retry.');return;}
-          progress.set(1+((i+1)/totalChunks)*90,'Uploading… part '+(i+1)+'/'+totalChunks+' ('+Math.round((i+1)/totalChunks*100)+'%)');
+        const uploadIds=[];
+        for(let fi=0;fi<files.length;fi++){
+          const file=files[fi];
+          progress.set(1+(fi/files.length)*90,(files.length>1?('File '+(fi+1)+'/'+files.length+': '+file.name+' — '):'')+'Uploading…');
+          const uid=await uploadOne(file,(frac)=>{
+            const overall=(fi+frac)/files.length;
+            progress.set(1+overall*90,(files.length>1?('File '+(fi+1)+'/'+files.length+' — '):'')+'Uploading… '+Math.round(overall*100)+'%');
+          });
+          uploadIds.push(uid);
         }
         progress.set(95,'Finishing…');
-        try{
-          const r=await fetch('/api/share/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uploadId})});
-          const data=await r.json();
+        let data;
+        if(uploadIds.length===1){
+          const r=await fetch('/api/share/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uploadId:uploadIds[0]})});
+          data=await r.json();
           if(!r.ok)throw new Error(data.error||('Upload failed ('+r.status+')'));
-          progress.done('Done.');
-          const link=location.origin+'/f/'+data.id;
-          status.textContent='Upload complete. '+data.name+' ('+fmtSize(data.size)+'). Link expires in 7 days.';
-          const p=document.createElement('p');
-          const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
-          p.appendChild(a);
-          const copy=document.createElement('button');copy.textContent='Copy link';copy.className='btn-secondary';copy.style.marginTop='8px';
-          copy.addEventListener('click',()=>{navigator.clipboard.writeText(link).then(()=>{copy.textContent='Copied!';setTimeout(()=>copy.textContent='Copy link',2000);});});
-          out.appendChild(p);out.appendChild(copy);
-          button.disabled=false;
-          setTimeout(()=>progress.hide(),4000);
-        }catch(err){fail(err.message||'Upload failed. Try again.');}
+        }else{
+          const r=await fetch('/api/share/folder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uploadIds})});
+          data=await r.json();
+          if(!r.ok)throw new Error(data.error||('Upload failed ('+r.status+')'));
+        }
+        const link=location.origin+'/f/'+data.id;
+        const label=uploadIds.length===1?(data.name+' ('+fmtSize(data.size)+')'):(data.files.length+' files ('+fmtSize(data.size)+')');
+        progress.done('Done.');
+        status.textContent='Upload complete. '+label+'. Link expires in 7 days. Recipients get a preview page first.';
+        const p=document.createElement('p');
+        const a=document.createElement('a');a.href=link;a.textContent=link;a.style.cssText='font-weight:700;word-break:break-all';
+        p.appendChild(a);
+        const copy=document.createElement('button');copy.textContent='Copy link';copy.className='btn-secondary';copy.style.marginTop='8px';
+        copy.addEventListener('click',()=>{navigator.clipboard.writeText(link).then(()=>{copy.textContent='Copied!';setTimeout(()=>copy.textContent='Copy link',2000);});});
+        out.appendChild(p);out.appendChild(copy);
+        button.disabled=false;
+        setTimeout(()=>progress.hide(),4000);
       })().catch((err)=>fail(err.message||'Upload failed. Try again.'));
     });
   } else if (type === 'temp-mail') {
