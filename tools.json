@@ -1018,5 +1018,23 @@
         "a": "Mailboxes are provided by the upstream mail service and expire on their side. Generate a new one anytime."
       }
     ]
+  },
+  {
+    "slug": "image-upscaler",
+    "name": "Image Upscaler & Enhancer",
+    "category": "Media & Visuals",
+    "description": "Enlarge photos 2x to 4x with high-quality smoothing and adjustable sharpening, entirely in your browser.",
+    "type": "image-upscale",
+    "seoText": "Upscale images 2x, 3x, or 4x with high-quality smoothing plus adjustable sharpening. Everything runs locally in your browser; nothing is uploaded. Download the enlarged image as PNG, JPEG, or WebP.",
+    "faq": [
+      {
+        "q": "Are my photos uploaded?",
+        "a": "No. Upscaling runs entirely in your browser with canvas; files never leave your device."
+      },
+      {
+        "q": "Will upscaling add real detail?",
+        "a": "It enlarges cleanly with high-quality smoothing and sharpening, but cannot recover detail that was never captured. It works best for small graphics, screenshots, and compressed photos."
+      }
+    ]
   }
 ]

@@ -1290,5 +1290,101 @@ function setupTool(type) {
     });
     refreshBtn.addEventListener('click',()=>loadInbox(false));
     copyBtn.addEventListener('click',()=>{if(!addrInput.value)return;navigator.clipboard.writeText(addrInput.value).then(()=>{copyBtn.textContent='Copied!';setTimeout(()=>copyBtn.textContent='Copy address',2000);});});
+  } else if (type === 'image-upscale') {
+    const fileInput=document.getElementById('upFile'),button=document.getElementById('upDownload'),status=document.getElementById('upStatus');
+    const scaleSel=document.getElementById('upScale'),formatSel=document.getElementById('upFormat');
+    const sharp=document.getElementById('upSharp'),sharpVal=document.getElementById('upSharpVal');
+    const quality=document.getElementById('upQuality'),qualityVal=document.getElementById('upQualityVal');
+    const before=document.getElementById('upBefore'),after=document.getElementById('upAfter');
+    const beforeSize=document.getElementById('upBeforeSize'),afterSize=document.getElementById('upAfterSize');
+    let bitmap=null,lastFileName='upscaled';
+    const MAX_SRC=15*1024*1024,MAX_OUT=8192;
+    sharp.addEventListener('input',()=>{sharpVal.textContent=sharp.value;});
+    quality.addEventListener('input',()=>{qualityVal.textContent=quality.value;});
+    const drawBefore=()=>{
+      if(!bitmap)return;
+      const maxW=480,s=Math.min(1,maxW/bitmap.width);
+      before.width=Math.max(1,Math.round(bitmap.width*s));
+      before.height=Math.max(1,Math.round(bitmap.height*s));
+      const ctx=before.getContext('2d');
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.clearRect(0,0,before.width,before.height);
+      ctx.drawImage(bitmap,0,0,before.width,before.height);
+      beforeSize.textContent=bitmap.width+' × '+bitmap.height+' px';
+    };
+    const upscale=(factor,sharpenPct)=>{
+      const w=bitmap.width,h=bitmap.height;
+      const ow=Math.min(MAX_OUT,Math.round(w*factor)),oh=Math.min(MAX_OUT,Math.round(h*factor));
+      const step1=document.createElement('canvas');step1.width=ow;step1.height=oh;
+      const c1=step1.getContext('2d',{willReadFrequently:true});
+      c1.imageSmoothingEnabled=true;c1.imageSmoothingQuality='high';
+      c1.clearRect(0,0,ow,oh);c1.drawImage(bitmap,0,0,ow,oh);
+      const amt=Math.max(0,Math.min(100,Number(sharpenPct)||0))/100;
+      if(amt>0){
+        const img=c1.getImageData(0,0,ow,oh),d=img.data,copy=new Uint8ClampedArray(d);
+        const str=0.35+(amt*0.85);
+        const idx=(x,y)=>((Math.min(oh-1,Math.max(0,y))*ow)+Math.min(ow-1,Math.max(0,x)))*4;
+        for(let y=0;y<oh;y++){
+          for(let x=0;x<ow;x++){
+            const i=(y*ow+x)*4;
+            for(let c=0;c<3;c++){
+              const blur=(copy[idx(x-1,y)+c]+copy[idx(x+1,y)+c]+copy[idx(x,y-1)+c]+copy[idx(x,y+1)+c])/4;
+              d[i+c]=copy[i+c]+(copy[i+c]-blur)*str;
+            }
+          }
+        }
+        c1.putImageData(img,0,0);
+      }
+      after.width=ow;after.height=oh;
+      const previewMax=480,ps=Math.min(1,previewMax/ow);
+      after.style.width=Math.max(1,Math.round(ow*ps))+'px';
+      const actx=after.getContext('2d');
+      actx.imageSmoothingEnabled=true;actx.imageSmoothingQuality='high';
+      actx.clearRect(0,0,ow,oh);actx.drawImage(step1,0,0);
+      afterSize.textContent=ow+' × '+oh+' px ('+factor+'x)';
+      return step1;
+    };
+    let preview=null;
+    const refreshPreview=()=>{
+      if(!bitmap){button.disabled=true;return;}
+      try{preview=upscale(Number(scaleSel.value)||2,Number(sharp.value));button.disabled=false;}
+      catch(e){status.textContent='Upscale failed: '+(e.message||e);button.disabled=true;}
+    };
+    fileInput.addEventListener('change',async()=>{
+      button.disabled=true;preview=null;
+      if(bitmap){bitmap.close?.();bitmap=null;}
+      after.width=1;after.height=1;afterSize.textContent='';beforeSize.textContent='';
+      const file=fileInput.files?.[0];if(!file)return;
+      if(file.size>MAX_SRC){status.textContent='File exceeds 15 MB. Choose a smaller image.';return;}
+      lastFileName=(file.name||'image').replace(/\.[^.]+$/,'')||'upscaled';
+      status.textContent='Loading…';
+      try{
+        bitmap=await createImageBitmap(file);
+        if(!bitmap.width||!bitmap.height)throw Error('unsupported image');
+        drawBefore();refreshPreview();
+        status.textContent='Ready: '+bitmap.width+' × '+bitmap.height+' → '+after.width+' × '+after.height+'.';
+      }catch(e){status.textContent='This image format is not supported by this browser.';}
+    });
+    scaleSel.addEventListener('change',()=>{if(bitmap){refreshPreview();status.textContent='Preview: '+bitmap.width+' × '+bitmap.height+' → '+after.width+' × '+after.height+'.';}});
+    sharp.addEventListener('change',()=>{if(bitmap)refreshPreview();});
+    button.addEventListener('click',()=>{
+      if(!bitmap)return;
+      button.disabled=true;status.textContent='Preparing download…';
+      try{
+        const step=preview||upscale(Number(scaleSel.value)||2,Number(sharp.value));
+        const mime=formatSel.value;
+        const q=Math.max(10,Math.min(100,Number(quality.value)||90))/100;
+        step.toBlob(blob=>{
+          button.disabled=false;
+          if(!blob){status.textContent='Export failed: unsupported output format.';return;}
+          const a=document.createElement('a');
+          a.href=URL.createObjectURL(blob);
+          const scale=Number(scaleSel.value)||2;
+          a.download=lastFileName+'-'+scale+'x'+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');
+          a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+          status.textContent='Upscaled '+after.width+' × '+after.height+' ('+fmtSize(blob.size)+'). Downloaded.';
+        },mime,...(mime==='image/png'?[]:[q]));
+      }catch(e){button.disabled=false;status.textContent='Upscale failed: '+(e.message||e);}
+    });
   }
 }
