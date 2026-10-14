@@ -2087,5 +2087,144 @@ function setupTool(type) {
     avaIn.addEventListener('change',()=>{const f=avaIn.files?.[0];if(!f)return;const host=document.getElementById('xAva');host.innerHTML='';const im=document.createElement('img');im.src=URL.createObjectURL(f);im.alt='avatar';im.style.cssText='width:100%;height:100%;object-fit:cover';host.appendChild(im);});
     dlBtn.addEventListener('click',()=>exportPhone('xPhone',dlStatus,'fake-x-post.png'));
     sync();
+  } else if (type === 'photobooth') {
+    const video=document.getElementById('pbVideo'),canvas=document.getElementById('pbCanvas'),countEl=document.getElementById('pbCount');
+    const startBtn=document.getElementById('pbStart'),snapBtn=document.getElementById('pbSnap'),autoBtn=document.getElementById('pbAuto'),resetBtn=document.getElementById('pbReset');
+    const uploadIn=document.getElementById('pbUpload'),tplSel=document.getElementById('pbTemplate'),filterSel=document.getElementById('pbFilter');
+    const captionIn=document.getElementById('pbCaption'),slotsEl=document.getElementById('pbSlots');
+    const dlBtn=document.getElementById('pbDownload'),status=document.getElementById('pbStatus');
+    const shots=[];
+    let stream=null,busy=false;
+    const tpl=(id)=>({
+      strip:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#ffffff',capColor:'#111111',capFont:'bold 30px Arial',decor:[]},
+      noir:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#141414',capColor:'#f5f5f5',capFont:'bold 30px Georgia',decor:[]},
+      cream:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#f5efe0',capColor:'#7c5a3a',capFont:'italic bold 30px Georgia',decor:[]},
+      birthday:{w:600,h:1800,slots:[[20,90,560,380],[20,490,560,380],[20,890,560,380],[20,1290,560,380]],capY:1735,bg1:'#ff9a9e',bg2:'#fecfef',capColor:'#a4133c',capFont:'bold 30px Arial',decor:[{e:'🎉',x:70,y:70,s:44},{e:'🎂',x:300,y:66,s:44},{e:'🎈',x:480,y:70,s:44}]},
+      neon:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#0a0a14',capColor:'#ff71ce',capFont:'bold 30px Arial',glow:'#01cdfe',decor:[]},
+      grid:{w:632,h:700,slots:[[16,16,292,292],[324,16,292,292],[16,324,292,292],[324,324,292,292]],capY:668,bg:'#ffffff',capColor:'#111111',capFont:'bold 26px Arial',decor:[]},
+      trio:{w:600,h:1260,slots:[[20,20,560,360],[20,400,560,360],[20,780,560,360]],capY:1195,bg:'#ffffff',capColor:'#111111',capFont:'bold 28px Arial',decor:[]},
+      polaroid:{w:600,h:740,slots:[[20,20,560,560]],capY:665,bg:'#ffffff',capColor:'#333333',capFont:'italic 28px Georgia',decor:[]},
+    })[id]||null;
+    const drawCover=(ctx,img,x,y,w,h)=>{
+      const iw=img.videoWidth||img.width,ih=img.videoHeight||img.height;
+      if(!iw||!ih)return;
+      const s=Math.max(w/iw,h/ih),dw=iw*s,dh=ih*s;
+      ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+      ctx.filter=filterSel.value==='none'?'none':filterSel.value;
+      ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);
+      ctx.restore();ctx.filter='none';
+    };
+    const render=()=>{
+      const t=tpl(tplSel.value);
+      canvas.width=t.w;canvas.height=t.h;
+      const ctx=canvas.getContext('2d');
+      if(t.bg2){const g=ctx.createLinearGradient(0,0,0,t.h);g.addColorStop(0,t.bg1);g.addColorStop(1,t.bg2);ctx.fillStyle=g;}
+      else ctx.fillStyle=t.bg;
+      ctx.fillRect(0,0,t.w,t.h);
+      (t.decor||[]).forEach((d)=>{ctx.font=d.s+'px serif';ctx.textAlign='center';ctx.fillText(d.e,d.x,d.y);});
+      t.slots.forEach((s,i)=>{
+        const [x,y,w,h]=s;
+        ctx.fillStyle=t.bg==='#ffffff'?'#e8e8e8':'rgba(255,255,255,.12)';
+        ctx.fillRect(x,y,w,h);
+        const shot=shots[i];
+        if(shot)drawCover(ctx,shot,x,y,w,h);
+        else{ctx.fillStyle=t.bg==='#ffffff'?'#9aa0a6':'rgba(255,255,255,.5)';ctx.font='20px Arial';ctx.textAlign='center';ctx.fillText('Photo '+(i+1),x+w/2,y+h/2);}
+        if(t.glow){ctx.save();ctx.shadowColor=t.glow;ctx.shadowBlur=18;ctx.strokeStyle=t.glow;ctx.lineWidth=3;ctx.strokeRect(x,y,w,h);ctx.restore();}
+        else{ctx.strokeStyle='rgba(0,0,0,.15)';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);}
+      });
+      ctx.fillStyle=t.capColor;ctx.font=t.capFont;ctx.textAlign='center';
+      if(t.glow){ctx.save();ctx.shadowColor=t.glow;ctx.shadowBlur=16;}
+      const cap=(captionIn.value||'').slice(0,60)||'Qword Photobooth';
+      ctx.fillText(cap,t.w/2,t.capY);
+      const dt=new Date();
+      ctx.font='18px Arial';ctx.fillStyle=t.bg==='#ffffff'?'#888888':'rgba(255,255,255,.55)';
+      ctx.fillText(dt.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}),t.w/2,t.capY+30);
+      if(t.glow)ctx.restore();
+      slotsEl.textContent=shots.length+' / '+t.slots.length+' photos';
+    };
+    const snap=()=>{
+      const t=tpl(tplSel.value);
+      if(shots.length>=t.slots.length){status.textContent='All slots full — Reset to start over.';return;}
+      if(!stream||video.videoWidth===0){status.textContent='Start the camera first, or upload photos.';return;}
+      const c=document.createElement('canvas');
+      c.width=video.videoWidth;c.height=video.videoHeight;
+      const ctx=c.getContext('2d');
+      ctx.translate(c.width,0);ctx.scale(-1,1);
+      ctx.drawImage(video,0,0);
+      shots.push(c);
+      status.textContent='Photo '+shots.length+' captured ✦';
+      render();
+    };
+    const countdown=(sec)=>new Promise((resolve)=>{
+      countEl.style.display='flex';
+      let n=sec;
+      countEl.textContent=String(n);
+      const timer=setInterval(()=>{
+        n--;
+        if(n<=0){clearInterval(timer);countEl.style.display='none';resolve();}
+        else countEl.textContent=String(n);
+      },1000);
+    });
+    startBtn.addEventListener('click',async()=>{
+      try{
+        if(stream)stream.getTracks().forEach((t)=>t.stop());
+        stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280}},audio:false});
+        video.srcObject=stream;
+        status.textContent='Camera on — pose! 📸';
+        snapBtn.disabled=false;autoBtn.disabled=false;
+      }catch(e){status.textContent='Camera blocked or unavailable. You can still upload photos below.';}
+    });
+    snapBtn.addEventListener('click',async()=>{
+      if(busy)return;busy=true;snapBtn.disabled=true;
+      await countdown(3);snap();
+      busy=false;snapBtn.disabled=false;
+    });
+    autoBtn.addEventListener('click',async()=>{
+      if(busy)return;
+      const t=tpl(tplSel.value);
+      if(shots.length>=t.slots.length){status.textContent='All slots full — Reset to start over.';return;}
+      if(!stream){status.textContent='Start the camera first.';return;}
+      busy=true;snapBtn.disabled=true;autoBtn.disabled=true;
+      while(shots.length<t.slots.length){
+        status.textContent='Get ready — photo '+(shots.length+1)+' of '+t.slots.length+'…';
+        await countdown(3);snap();
+        await new Promise((r)=>setTimeout(r,600));
+      }
+      status.textContent='All done! Download your strip below 🎞️';
+      busy=false;snapBtn.disabled=false;autoBtn.disabled=false;
+    });
+    resetBtn.addEventListener('click',()=>{shots.length=0;status.textContent='Cleared.';render();});
+    uploadIn.addEventListener('change',async()=>{
+      const files=Array.from(uploadIn.files||[]);
+      const t=tpl(tplSel.value);
+      for(const f of files){
+        if(shots.length>=t.slots.length)break;
+        try{
+          const bmp=await createImageBitmap(f);
+          const c=document.createElement('canvas');
+          c.width=bmp.width;c.height=bmp.height;
+          c.getContext('2d').drawImage(bmp,0,0);
+          bmp.close?.();
+          shots.push(c);
+        }catch(e){/* skip unreadable */}
+      }
+      uploadIn.value='';
+      status.textContent=shots.length+' photo(s) loaded.';
+      render();
+    });
+    [tplSel,filterSel].forEach((el)=>el.addEventListener('change',render));
+    captionIn.addEventListener('input',render);
+    dlBtn.addEventListener('click',()=>{
+      if(!shots.length){status.textContent='Snap or upload at least one photo first.';return;}
+      canvas.toBlob((blob)=>{
+        if(!blob){status.textContent='Export failed.';return;}
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download='qword-photobooth-'+tplSel.value+'.png';
+        a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+        status.textContent='Downloaded! Enjoy 📸';
+      },'image/png');
+    });
+    render();
   }
 }

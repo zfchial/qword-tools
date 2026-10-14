@@ -1310,5 +1310,27 @@
         "a": "Yes — switch between light and dark X themes with one toggle."
       }
     ]
+  },
+  {
+    "slug": "photobooth",
+    "name": "Online Photobooth with Templates",
+    "category": "Media & Visuals",
+    "description": "Snap webcam photos into 8 stylish templates — classic strip, polaroid, grid, birthday, neon — with countdown and filters.",
+    "type": "photobooth",
+    "seoText": "Free online photobooth with 8 frame templates. Use your webcam with a 3-2-1 countdown (or upload photos) to fill a classic photo strip, polaroid, 2x2 grid, film noir, birthday, or neon frame. Add filters, a custom caption, and download a high-resolution PNG. Everything runs in your browser; photos are never uploaded.",
+    "faq": [
+      {
+        "q": "Are my photos uploaded anywhere?",
+        "a": "No. The camera, templates, and export all run locally in your browser."
+      },
+      {
+        "q": "What if I have no webcam?",
+        "a": "Use the upload button to pick photos from your device instead — they fill the template slots in order."
+      },
+      {
+        "q": "How many photos fit one template?",
+        "a": "Up to 4, depending on the template. The classic strip, grid, noir, birthday, cream, and neon frames take 4; trio takes 3; polaroid takes 1."
+      }
+    ]
   }
 ]

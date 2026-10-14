@@ -15,7 +15,7 @@ const QR_TYPES = new Set(["wifi-qr"]);
 export default function ToolClient({ tool, markup, related }: { tool: Tool; markup: string; related: Tool[] }) {
   useEffect(() => { initializeTool(tool.type); }, [tool.type]);
   return <>
-    <Script src="/tool-engine.js?v=13" strategy="afterInteractive" onReady={() => initializeTool(tool.type)} />
+    <Script src="/tool-engine.js?v=14" strategy="afterInteractive" onReady={() => initializeTool(tool.type)} />
     {SHOT_TYPES.has(tool.type) && (
       <script
         src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"
