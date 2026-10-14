@@ -1492,5 +1492,439 @@ function setupTool(type) {
         },mime,...(mime==='image/png'?[]:[q]));
       }catch(e){button.disabled=false;status.textContent='Upscale failed: '+(e.message||e);}
     });
+  } else if (type === 'image-compress') {
+    const fileInput=document.getElementById('cmpFile'),button=document.getElementById('cmpDownload'),status=document.getElementById('cmpStatus');
+    const quality=document.getElementById('cmpQuality'),qualityVal=document.getElementById('cmpQualityVal');
+    const maxDim=document.getElementById('cmpMax'),formatSel=document.getElementById('cmpFormat');
+    const before=document.getElementById('cmpBefore'),after=document.getElementById('cmpAfter');
+    const beforeSize=document.getElementById('cmpBeforeSize'),afterSize=document.getElementById('cmpAfterSize');
+    let bitmap=null,fileBytes=0,lastBlob=null,lastExt='jpg',objUrls=[];
+    const freeUrls=()=>{objUrls.forEach((u)=>URL.revokeObjectURL(u));objUrls=[];};
+    quality.addEventListener('input',()=>{qualityVal.textContent=quality.value;refresh();});
+    const targetSize=()=>{
+      if(!bitmap)return [0,0];
+      const md=Math.max(0,Number(maxDim.value)||0);
+      const s=md>0?Math.min(1,md/Math.max(bitmap.width,bitmap.height)):1;
+      return [Math.max(1,Math.round(bitmap.width*s)),Math.max(1,Math.round(bitmap.height*s))];
+    };
+    const encode=()=>new Promise((resolve)=>{
+      const [w,h]=targetSize();
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const ctx=c.getContext('2d');
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+      ctx.drawImage(bitmap,0,0,w,h);
+      const mime=formatSel.value,q=Math.max(10,Math.min(100,Number(quality.value)||80))/100;
+      c.toBlob((b)=>resolve(b),mime,...(mime==='image/png'?[]:[q]));
+    });
+    let seq=0;
+    const refresh=async()=>{
+      if(!bitmap){button.disabled=true;return;}
+      const my=++seq;
+      status.textContent='Compressing…';
+      const blob=await encode();
+      if(!blob||my!==seq)return;
+      lastBlob=blob;
+      lastExt=formatSel.value==='image/png'?'png':formatSel.value==='image/webp'?'webp':'jpg';
+      const url=URL.createObjectURL(blob);objUrls.push(url);
+      after.src=url;
+      const [w,h]=targetSize();
+      afterSize.textContent=w+' × '+h+' px · '+fmtSize(blob.size)+' ('+Math.round(blob.size/Math.max(1,fileBytes)*100)+'% of original)';
+      status.textContent='Saved '+fmtSize(Math.max(0,fileBytes-blob.size))+'.';
+      button.disabled=false;
+    };
+    const refreshDb=()=>{clearTimeout(refresh._t);refresh._t=setTimeout(refresh,180);};
+    maxDim.addEventListener('input',refreshDb);
+    formatSel.addEventListener('change',refresh);
+    fileInput.addEventListener('change',async()=>{
+      freeUrls();button.disabled=true;lastBlob=null;
+      const file=fileInput.files?.[0];if(!file)return;
+      if(file.size>25*1024*1024){status.textContent='File exceeds 25 MB.';return;}
+      if(bitmap){bitmap.close?.();bitmap=null;}
+      fileBytes=file.size;
+      status.textContent='Loading…';
+      try{
+        bitmap=await createImageBitmap(file);
+        const burl=URL.createObjectURL(file);objUrls.push(burl);
+        before.src=burl;
+        beforeSize.textContent=bitmap.width+' × '+bitmap.height+' px · '+fmtSize(file.size);
+        await refresh();
+      }catch(e){status.textContent='This image format is not supported by this browser.';}
+    });
+    button.addEventListener('click',()=>{
+      if(!lastBlob)return;
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(lastBlob);
+      const base=(fileInput.files?.[0]?.name||'image').replace(/\.[^.]+$/,'')||'image';
+      a.download=base+'-compressed.'+lastExt;
+      a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    });
+  } else if (type === 'subnet-calc') {
+    const ipIn=document.getElementById('subIp'),cidrIn=document.getElementById('subCidr'),btn=document.getElementById('subCalc'),out=document.getElementById('subOut');
+    const esc=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const toInt=(a,b,c,d)=>((a<<24)>>>0)+((b<<16)>>>0)+((c<<8)>>>0)+(d>>>0);
+    const toStr=(n)=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+    const toBin=(n)=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].map((o)=>o.toString(2).padStart(8,'0')).join('.');
+    const parseIp=(s)=>{const m=String(s||'').trim().match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);if(!m)return null;const o=m.slice(1).map(Number);if(o.some((x)=>x<0||x>255))return null;return toInt(o[0],o[1],o[2],o[3]);};
+    const parseCidr=(s)=>{s=String(s||'').trim();if(/^\d{1,2}$/.test(s)){const p=Number(s);if(p>=0&&p<=32)return p;return null;}const m=parseIp(s);if(m===null)return null;let bits=0,seenZero=false;for(let i=31;i>=0;i--){const b=(m>>>i)&1;if(b){if(seenZero)return null;bits++;}else seenZero=true;}return bits;};
+    const calc=()=>{
+      const ip=parseIp(ipIn.value),p=parseCidr(cidrIn.value);
+      if(ip===null){out.innerHTML='<p style="color:#dc2626">Invalid IP address.</p>';return;}
+      if(p===null){out.innerHTML='<p style="color:#dc2626">Invalid prefix. Use 0-32 or a dotted mask.</p>';return;}
+      const mask=p===0?0:((0xFFFFFFFF<<(32-p))>>>0);
+      const net=(ip&mask)>>>0,bcast=(net|(~mask>>>0))>>>0,wild=((~mask)>>>0)>>>0;
+      let usable,first,last;
+      if(p===32){usable=0;first=null;last=null;}
+      else if(p===31){usable=2;first=net;last=bcast;}
+      else{usable=Math.pow(2,32-p)-2;first=(net+1)>>>0;last=(bcast-1)>>>0;}
+      const firstOct=(ip>>>24)&255;
+      const cls=firstOct<128?'A (1-126)':firstOct<192?'B (128-191)':firstOct<224?'C (192-223)':firstOct<240?'D multicast':'E reserved';
+      const o2=(ip>>>16)&255,o3=(ip>>>8)&255;
+      const priv=(firstOct===10||(firstOct===172&&o2>=16&&o2<=31)||(firstOct===192&&o3===168))?'yes (RFC 1918)':'no';
+      const row=(k,v)=>`<tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">${k}</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${esc(v)}</td></tr>`;
+      out.innerHTML=`<table style="border-collapse:collapse;width:100%;font-size:14px"><tbody>${row('IP address',toStr(ip)+' /'+p)}${row('Subnet mask',toStr(mask))}${row('Wildcard mask',toStr(wild))}${row('Network',toStr(net))}${row('Broadcast',toStr(bcast))}${row('First usable',first===null?'— (single host)':toStr(first))}${row('Last usable',last===null?'— (single host)':toStr(last))}${row('Usable hosts',usable.toLocaleString('en-US'))}${row('IP class',cls)}${row('Private',priv)}${row('Binary',toBin(ip))}${row('Mask binary',toBin(mask))}</tbody></table>`;
+    };
+    btn.addEventListener('click',calc);
+    [ipIn,cidrIn].forEach((el)=>el.addEventListener('keydown',(e)=>{if(e.key==='Enter')calc();}));
+    calc();
+  } else if (type === 'chmod-calc') {
+    const boxes=Array.from(document.querySelectorAll('#chmodGrid input[type=checkbox]'));
+    const suid=document.getElementById('chmodSuid'),sgid=document.getElementById('chmodSgid'),sticky=document.getElementById('chmodSticky');
+    const octal=document.getElementById('chmodOctal'),symbolic=document.getElementById('chmodSymbolic'),cmd=document.getElementById('chmodCmd');
+    const sym=(mode)=>{let s='';for(let i=0;i<3;i++){const b=(mode>>((2-i)*3))&7;s+=(b&4?'r':'-')+(b&2?'w':'-')+(b&1?'x':'-');}return s;};
+    const fromBoxes=()=>{
+      const m=[0,1,2].map((w)=>boxes.filter((b)=>b.dataset.who==String(w)&&b.checked).reduce((a,b)=>a|Number(b.dataset.bit),0));
+      const special=(suid.checked?4:0)|(sgid.checked?2:0)|(sticky.checked?1:0);
+      const digits=special>0?[special,...m]:m;
+      octal.value=digits.join('');
+      const s=sym((m[0]<<6)|(m[1]<<3)|m[2]);
+      symbolic.value=s;
+      cmd.textContent='chmod '+digits.join('')+' file';
+    };
+    const fromOctal=()=>{
+      const v=octal.value.trim();
+      if(!/^[0-7]{3,4}$/.test(v)){cmd.textContent='Invalid octal mode (use 3-4 digits, 0-7).';return;}
+      const d=v.split('').map(Number);
+      const special=d.length===4?d[0]:0,modes=d.slice(-3);
+      suid.checked=!!(special&4);sgid.checked=!!(special&2);sticky.checked=!!(special&1);
+      boxes.forEach((b)=>{const w=Number(b.dataset.who),bit=Number(b.dataset.bit);b.checked=!!(modes[w]&bit);});
+      const s=sym((modes[0]<<6)|(modes[1]<<3)|modes[2]);
+      symbolic.value=s;
+      cmd.textContent='chmod '+v+' file';
+    };
+    [...boxes,suid,sgid,sticky].forEach((b)=>b.addEventListener('change',fromBoxes));
+    octal.addEventListener('input',fromOctal);
+    fromBoxes();
+  } else if (type === 'wifi-qr') {
+    const ssid=document.getElementById('wifiSsid'),sec=document.getElementById('wifiSec'),pass=document.getElementById('wifiPass');
+    const hidden=document.getElementById('wifiHidden'),gen=document.getElementById('wifiGen'),dl=document.getElementById('wifiDl');
+    const img=document.getElementById('wifiImg'),payloadEl=document.getElementById('wifiPayload'),status=document.getElementById('wifiStatus');
+    const escField=(s)=>String(s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/:/g,'\\:').replace(/"/g,'\\"');
+    const escHtml=(s)=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const build=()=>{
+      const s=ssid.value.trim();
+      if(!s){status.textContent='Enter the network name (SSID).';return null;}
+      const t=sec.value;
+      let p='WIFI:T:'+t+';S:'+escField(s)+';';
+      if(t!=='nopass')p+='P:'+escField(pass.value)+';';
+      if(hidden.checked)p+='H:true;';
+      return p+';';
+    };
+    gen.addEventListener('click',()=>{
+      const p=build();if(!p)return;
+      img.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+encodeURIComponent(p);
+      payloadEl.textContent=p;
+      status.textContent='Scan with a phone camera to join "'+ssid.value.trim()+'".';
+      dl.disabled=false;
+    });
+    sec.addEventListener('change',()=>{pass.disabled=sec.value==='nopass';});
+    pass.disabled=sec.value==='nopass';
+    dl.addEventListener('click',async()=>{
+      if(!img.src)return;
+      dl.disabled=true;
+      try{
+        const r=await fetch(img.src);
+        if(!r.ok)throw new Error('fetch');
+        const blob=await r.blob();
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download='wifi-'+(ssid.value.trim()||'network')+'.png';
+        a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+        status.textContent='QR downloaded.';
+      }catch(e){window.open(img.src,'_blank');status.textContent='Opened QR in a new tab (download blocked).';}
+      dl.disabled=false;
+    });
+  } else if (type === 'palette-extract') {
+    const fileInput=document.getElementById('palFile'),countSel=document.getElementById('palCount');
+    const img=document.getElementById('palImg'),out=document.getElementById('palOut'),status=document.getElementById('palStatus');
+    const hex=(r,g,b)=>'#'+[r,g,b].map((x)=>Math.max(0,Math.min(255,Math.round(x))).toString(16).padStart(2,'0')).join('');
+    fileInput.addEventListener('change',async()=>{
+      out.innerHTML='';
+      const file=fileInput.files?.[0];if(!file)return;
+      status.textContent='Analyzing…';
+      try{
+        const bmp=await createImageBitmap(file);
+        img.src=URL.createObjectURL(file);
+        const s=Math.min(1,120/Math.max(bmp.width,bmp.height));
+        const w=Math.max(1,Math.round(bmp.width*s)),h=Math.max(1,Math.round(bmp.height*s));
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        const ctx=c.getContext('2d',{willReadFrequently:true});
+        ctx.drawImage(bmp,0,0,w,h);
+        bmp.close?.();
+        const d=ctx.getImageData(0,0,w,h).data;
+        const buckets=new Map();
+        for(let i=0;i<d.length;i+=4){
+          if(d[i+3]<128)continue;
+          const key=((d[i]>>4)<<8)|((d[i+1]>>4)<<4)|(d[i+2]>>4);
+          let b=buckets.get(key);
+          if(!b){b={r:0,g:0,bl:0,n:0};buckets.set(key,b);}
+          b.r+=d[i];b.g+=d[i+1];b.bl+=d[i+2];b.n++;
+        }
+        const top=[...buckets.values()].sort((a,b)=>b.n-a.n).slice(0,Number(countSel.value)||8);
+        const total=top.reduce((a,b)=>a+b.n,0)||1;
+        top.forEach((b)=>{
+          const hxc=hex(b.r/b.n,b.g/b.n,b.bl/b.n);
+          const pct=Math.round(b.n/total*100);
+          const card=document.createElement('button');
+          card.type='button';
+          card.style.cssText='border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;background:transparent;padding:0;text-align:left';
+          card.innerHTML=`<div style="height:64px;background:${hxc}"></div><div style="padding:8px 10px;font-size:13px"><strong class="mono">${hxc}</strong><br><span style="color:var(--muted)">${pct}%</span></div>`;
+          card.addEventListener('click',()=>{navigator.clipboard.writeText(hxc).then(()=>{status.textContent='Copied '+hxc;});});
+          out.appendChild(card);
+        });
+        status.textContent=top.length+' dominant colors. Click a swatch to copy its HEX.';
+      }catch(e){status.textContent='Could not read this image.';}
+    });
+    countSel.addEventListener('change',()=>{if(fileInput.files?.[0])fileInput.dispatchEvent(new Event('change'));});
+  } else if (type === 'exif-tool') {
+    const fileInput=document.getElementById('exifFile'),img=document.getElementById('exifImg');
+    const out=document.getElementById('exifOut'),cleanBtn=document.getElementById('exifClean'),status=document.getElementById('exifStatus');
+    const esc=(s)=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    let origBuf=null,origName='',origMime='';
+    const dvGetString=(dv,off,len)=>{let s='';for(let i=0;i<len;i++){const c=dv.getUint8(off+i);if(c===0)break;s+=String.fromCharCode(c);}return s;};
+    const readAscii=(dv,entry,bo)=>{const type=dv.getUint16(entry+2,bo),count=dv.getUint32(entry+4,bo);const valOff=count<=4?entry+8:dv.getUint32(entry+8,bo);if(type===2)return dvGetString(dv,valOff,Math.min(count,256));return '';};
+    const readRational=(dv,entry,bo)=>{const type=dv.getUint16(entry+2,bo),count=dv.getUint32(entry+4,bo);if(count<1)return NaN;const off=dv.getUint32(entry+8,bo);const num=dv.getUint32(off,bo),den=dv.getUint32(off+4,bo);return den?num/den:NaN;};
+    const readGps=(bytes,bo,tiffOff,gpsOff)=>{
+      const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+      const n=dv.getUint16(tiffOff+gpsOff,bo);
+      let lat=null,lon=null,latRef='',lonRef='';
+      for(let i=0;i<n;i++){
+        const e=tiffOff+gpsOff+2+i*12,tag=dv.getUint16(e,bo);
+        const cnt=dv.getUint32(e+4,bo);
+        if(tag===1)latRef=dvGetString(dv,dv.getUint32(e+8,bo),2);
+        else if(tag===3)lonRef=dvGetString(dv,dv.getUint32(e+8,bo),2);
+        else if((tag===2||tag===4)&&cnt>=3){
+          const off=dv.getUint32(e+8,bo);
+          const comp=[];for(let k=0;k<3;k++){const num=dv.getUint32(off+k*8,bo),den=dv.getUint32(off+k*8+4,bo);comp.push(den?num/den:0);}
+          const dec=comp[0]+comp[1]/60+comp[2]/3600;
+          if(tag===2)lat=dec;else lon=dec;
+        }
+      }
+      if(lat!==null&&latRef==='S')lat=-lat;
+      if(lon!==null&&lonRef==='W')lon=-lon;
+      return (lat!==null&&lon!==null)?lat.toFixed(6)+', '+lon.toFixed(6):'';
+    };
+    const parseJpegExif=(bytes)=>{
+      const out={};
+      if(bytes[0]!==0xFF||bytes[1]!==0xD8)return out;
+      let p=2;
+      while(p+4<bytes.length){
+        if(bytes[p]!==0xFF)break;
+        const marker=bytes[p+1];
+        if(marker===0xDA||marker===0xD9)break;
+        const len=(bytes[p+2]<<8)|bytes[p+3];
+        if(marker===0xE1&&len>10&&bytes[p+4]===0x45&&bytes[p+5]===0x78&&bytes[p+6]===0x69&&bytes[p+7]===0x66){
+          try{
+            const tiff=p+10,bo=bytes[tiff]===0x49;
+            const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);
+            if(dv.getUint16(tiff,bo)!==0x2A)break;
+            const ifd0=tiff+dv.getUint32(tiff+4,bo);
+            const n=dv.getUint16(ifd0,bo);
+            let exifOff=0,gpsOff=0,orient='';
+            for(let i=0;i<n;i++){
+              const e=ifd0+2+i*12,tag=dv.getUint16(e,bo);
+              if(tag===0x010F)out.Make=readAscii(dv,e,bo);
+              else if(tag===0x0110)out.Model=readAscii(dv,e,bo);
+              else if(tag===0x0132)out['Date taken']=readAscii(dv,e,bo);
+              else if(tag===0x0112){const v=dv.getUint16(e+8,bo);orient={1:'Normal',3:'Rotated 180°',6:'Rotated 90° CW',8:'Rotated 90° CCW'}[v]||('Orientation '+v);out.Orientation=orient;}
+              else if(tag===0x8769)exifOff=dv.getUint32(e+8,bo);
+              else if(tag===0x8825)gpsOff=dv.getUint32(e+8,bo);
+            }
+            if(exifOff){
+              const m=dv.getUint16(tiff+exifOff,bo);
+              for(let i=0;i<m;i++){
+                const e=tiff+exifOff+2+i*12,tag=dv.getUint16(e,bo);
+                if(tag===0x9003)out['Date taken (original)']=readAscii(dv,e,bo);
+                else if(tag===0xA002)out['Pixel width']=String(dv.getUint32(e+8,bo));
+                else if(tag===0xA003)out['Pixel height']=String(dv.getUint32(e+8,bo));
+              }
+            }
+            if(gpsOff){const g=readGps(bytes,bo,tiff,gpsOff);if(g)out['GPS coordinates']=g;}
+          }catch(err){/* ignore malformed exif */}
+          break;
+        }
+        p+=2+len;
+      }
+      return out;
+    };
+    const parsePngText=(bytes)=>{
+      const out={};
+      let p=8;
+      const dec=new TextDecoder('latin1');
+      while(p+8<bytes.length){
+        const len=(bytes[p]<<24)|(bytes[p+1]<<16)|(bytes[p+2]<<8)|bytes[p+3];
+        const type=String.fromCharCode(bytes[p+4],bytes[p+5],bytes[p+6],bytes[p+7]);
+        if(type==='IEND')break;
+        if((type==='tEXt'||type==='iTXt'||type==='zTXt')&&len>0&&len<65536){
+          try{
+            const data=bytes.subarray(p+8,p+8+len);
+            const zero=data.indexOf(0);
+            if(zero>0&&zero<200){
+              const key=dec.decode(data.subarray(0,zero));
+              out[key]=dec.decode(data.subarray(zero+1,Math.min(data.length,zero+201))).replace(/\0.*$/,'');
+            }
+          }catch(err){}
+        }
+        p+=12+len;
+      }
+      return out;
+    };
+    const crcTable=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c;}return t;})();
+    const crc32=(bytes)=>{let c=0xFFFFFFFF;for(let i=0;i<bytes.length;i++)c=crcTable[(c^bytes[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;};
+    const chunk=(type,data)=>{const len=new Uint8Array(4);const v=new DataView(len.buffer);v.setUint32(0,data.length);const td=new TextEncoder().encode(type);const crc=new Uint8Array(4);new DataView(crc.buffer).setUint32(0,crc32(new Uint8Array([...td,...data])));return new Uint8Array([...len,...td,...data,...crc]);};
+    const cleanJpeg=(bytes)=>{
+      const parts=[bytes.subarray(0,2)];
+      let p=2;
+      while(p+4<=bytes.length){
+        if(bytes[p]!==0xFF){parts.push(bytes.subarray(p));break;}
+        const marker=bytes[p+1];
+        if(marker===0xDA||marker===0xD9){parts.push(bytes.subarray(p));break;}
+        if(marker===0x00||marker===0xFF){p++;continue;}
+        const len=(bytes[p+2]<<8)|bytes[p+3];
+        const isMeta=(marker>=0xE0&&marker<=0xEF)||marker===0xFE;
+        if(!isMeta)parts.push(bytes.subarray(p,p+2+len));
+        p+=2+len;
+      }
+      const total=parts.reduce((a,b)=>a+b.length,0);
+      const res=new Uint8Array(total);
+      let o=0;parts.forEach((x)=>{res.set(x,o);o+=x.length;});
+      return res;
+    };
+    const cleanPng=(bytes)=>{
+      const keep=new Set(['IHDR','PLTE','IDAT','IEND']);
+      const out=[bytes.subarray(0,8)];
+      let p=8;
+      while(p+8<=bytes.length){
+        const len=(bytes[p]<<24)|(bytes[p+1]<<16)|(bytes[p+2]<<8)|bytes[p+3];
+        const type=String.fromCharCode(bytes[p+4],bytes[p+5],bytes[p+6],bytes[p+7]);
+        if(len<0||len>100*1024*1024)break;
+        if(keep.has(type))out.push(chunk(type,bytes.subarray(p+8,p+8+len)));
+        if(type==='IEND')break;
+        p+=12+len;
+      }
+      const total=out.reduce((a,b)=>a+b.length,0);
+      const res=new Uint8Array(total);
+      let o=0;out.forEach((x)=>{res.set(x,o);o+=x.length;});
+      return res;
+    };
+    fileInput.addEventListener('change',()=>{
+      out.innerHTML='';cleanBtn.disabled=true;origBuf=null;
+      const file=fileInput.files?.[0];if(!file)return;
+      if(file.size>25*1024*1024){status.textContent='File exceeds 25 MB.';return;}
+      origName=file.name;origMime=file.type;
+      img.src=URL.createObjectURL(file);
+      status.textContent='Reading metadata…';
+      const reader=new FileReader();
+      reader.onload=()=>{
+        origBuf=new Uint8Array(reader.result);
+        let found={};
+        if(file.type==='image/jpeg'||/\.jpe?g$/i.test(file.name))found=parseJpegExif(origBuf);
+        else if(file.type==='image/png'||/\.png$/i.test(file.name))found=parsePngText(origBuf);
+        else{status.textContent='Only JPG and PNG are supported.';return;}
+        const keys=Object.keys(found).filter((k)=>found[k]);
+        if(!keys.length){
+          out.innerHTML='<p>✅ No embedded metadata found — this file is already clean.</p>';
+          status.textContent='Clean. Nothing to remove.';
+          return;
+        }
+        out.innerHTML='<table style="border-collapse:collapse;width:100%;font-size:14px"><tbody>'+keys.map((k)=>`<tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">${esc(k)}</td><td style="padding:6px 10px;border:1px solid var(--line);word-break:break-all" class="mono">${esc(found[k])}</td></tr>`).join('')+'</tbody></table>';
+        status.textContent=keys.length+' metadata field(s) found.';
+        cleanBtn.disabled=false;
+      };
+      reader.onerror=()=>{status.textContent='Could not read this file.';};
+      reader.readAsArrayBuffer(file);
+    });
+    cleanBtn.addEventListener('click',()=>{
+      if(!origBuf)return;
+      try{
+        const clean=/\.png$/i.test(origName)||origMime==='image/png'?cleanPng(origBuf):cleanJpeg(origBuf);
+        const blob=new Blob([clean.buffer.slice?clean.buffer.slice(clean.byteOffset,clean.byteOffset+clean.byteLength):clean],{type:origMime||'application/octet-stream'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=origName.replace(/(\.[^.]+)?$/, '-clean$1');
+        a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+        status.textContent='Cleaned copy downloaded ('+fmtSize(clean.length)+' vs '+fmtSize(origBuf.length)+' original).';
+      }catch(e){status.textContent='Cleaning failed for this file.';}
+    });
+  } else if (type === 'loan-calc') {
+    const amt=document.getElementById('loanAmount'),rate=document.getElementById('loanRate'),yrs=document.getElementById('loanYears');
+    const btn=document.getElementById('loanCalc'),out=document.getElementById('loanOut');
+    const money=(n)=>'Rp '+Math.round(n).toLocaleString('en-US');
+    btn.addEventListener('click',()=>{
+      const P=Math.max(0,Number(amt.value)||0),annual=Math.max(0,Number(rate.value)||0),Y=Math.max(1,Math.min(50,Math.round(Number(yrs.value)||1)));
+      if(!P){out.innerHTML='<p style="color:#dc2626">Enter a loan amount.</p>';return;}
+      const r=annual/100/12,n=Y*12;
+      const M=r>0?P*r/(1-Math.pow(1+r,-n)):P/n;
+      const total=M*n,interest=total-P;
+      let bal=P,rows='';
+      for(let y=1;y<=Y;y++){
+        let yi=0,yp=0;
+        for(let m=0;m<12;m++){const ii=bal*r;const pp=Math.min(bal,M-ii);yi+=ii;yp+=pp;bal-=pp;if(bal<=0.01){bal=0;break;}}
+        rows+=`<tr><td style="padding:6px 10px;border:1px solid var(--line)">${y}</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${money(yi)}</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${money(yp)}</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${money(Math.max(0,bal))}</td></tr>`;
+        if(bal<=0)break;
+      }
+      out.innerHTML=`<table style="border-collapse:collapse;font-size:14px;margin-bottom:10px"><tbody><tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">Monthly payment</td><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700" class="mono">${money(M)}</td></tr><tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">Total interest</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${money(interest)}</td></tr><tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">Total payment</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${money(total)}</td></tr></tbody></table><table style="border-collapse:collapse;width:100%;font-size:13px"><thead><tr><th style="padding:6px 10px;border:1px solid var(--line)">Year</th><th style="padding:6px 10px;border:1px solid var(--line)">Interest</th><th style="padding:6px 10px;border:1px solid var(--line)">Principal</th><th style="padding:6px 10px;border:1px solid var(--line)">Balance</th></tr></thead><tbody>${rows}</tbody></table>`;
+    });
+  } else if (type === 'bmi-calc') {
+    const hIn=document.getElementById('bmiHeight'),wIn=document.getElementById('bmiWeight');
+    const btn=document.getElementById('bmiCalc'),out=document.getElementById('bmiOut');
+    btn.addEventListener('click',()=>{
+      const h=Math.max(50,Math.min(250,Number(hIn.value)||0)),w=Math.max(0,Number(wIn.value)||0);
+      if(!h||!w){out.innerHTML='<p style="color:#dc2626">Enter height and weight.</p>';return;}
+      const m=h/100,bmi=w/(m*m);
+      const cat=bmi<18.5?['Underweight','#3b82f6']:bmi<25?['Healthy','#16a34a']:bmi<30?['Overweight','#d97706']:['Obese','#dc2626'];
+      const lo=(18.5*m*m).toFixed(1),hi=(24.9*m*m).toFixed(1);
+      out.innerHTML=`<p style="font-size:15px">Your BMI: <strong style="font-size:28px">${bmi.toFixed(1)}</strong> — <strong style="color:${cat[1]}">${cat[0]}</strong></p><div style="height:12px;border-radius:6px;background:linear-gradient(to right,#3b82f6 0 15%,#16a34a 15% 45%,#d97706 45% 65%,#dc2626 65% 100%);position:relative;margin:10px 0"><div style="position:absolute;top:-4px;bottom:-4px;width:3px;background:#000;left:${Math.max(0,Math.min(100,(bmi-12)/(40-12)*100))}%"></div></div><p style="font-size:13px">Healthy weight for ${h} cm: ${lo} – ${hi} kg.</p>`;
+    });
+  } else if (type === 'discount-calc') {
+    const price=document.getElementById('discPrice'),pct=document.getElementById('discPct'),extra=document.getElementById('discExtra'),tax=document.getElementById('discTax');
+    const btn=document.getElementById('discCalc'),out=document.getElementById('discOut');
+    const money=(n)=>'Rp '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    btn.addEventListener('click',()=>{
+      const p=Math.max(0,Number(price.value)||0);
+      const d1=Math.max(0,Math.min(100,Number(pct.value)||0)),d2=Math.max(0,Math.min(100,Number(extra.value)||0)),t=Math.max(0,Math.min(100,Number(tax.value)||0));
+      const after1=p*(1-d1/100),after2=after1*(1-d2/100),taxAmt=after2*t/100,total=after2+taxAmt;
+      out.innerHTML=`<table style="border-collapse:collapse;font-size:14px"><tbody><tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">Sale price</td><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700" class="mono">${money(after2)}</td></tr><tr><td style="padding:6px 10px;border:1px solid var(--line)">You save</td><td style="padding:6px 10px;border:1px solid var(--line);color:#16a34a;font-weight:700" class="mono">${money(p-after2)} (${p>0?Math.round((p-after2)/p*100):0}%)</td></tr>${t?`<tr><td style="padding:6px 10px;border:1px solid var(--line)">Tax (${t}%)</td><td style="padding:6px 10px;border:1px solid var(--line)" class="mono">${money(taxAmt)}</td></tr><tr><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700">Total at checkout</td><td style="padding:6px 10px;border:1px solid var(--line);font-weight:700" class="mono">${money(total)}</td></tr>`:''}</tbody></table>`;
+    });
+  } else if (type === 'pdf-split-rotate') {
+    const fileInput=document.getElementById('psrFile'),info=document.getElementById('psrInfo');
+    const ranges=document.getElementById('psrRanges'),splitBtn=document.getElementById('psrSplit');
+    const pages=document.getElementById('psrPages'),deg=document.getElementById('psrDeg'),rotBtn=document.getElementById('psrRotate');
+    const status=document.getElementById('psrStatus');
+    fileInput.addEventListener('change',()=>{
+      const f=fileInput.files?.[0];
+      const ok=f&&/\.pdf$/i.test(f.name)&&f.size>0&&f.size<=25*1024*1024;
+      splitBtn.disabled=!ok;rotBtn.disabled=!ok;
+      info.textContent=!f?'':!ok?'Pick a PDF file up to 25 MB.':(f.name+' ('+fmtSize(f.size)+') ready.');
+    });
+    splitBtn.addEventListener('click',()=>{
+      const f=fileInput.files?.[0];if(!f||!ranges.value.trim()){status.textContent='Enter page ranges, e.g. 1-3, 5.';return;}
+      const form=new FormData();form.append('file',f);form.append('ranges',ranges.value.trim());
+      convertWithProgress('psr',splitBtn,status,(onUpload)=>uploadWithProgress('/api/convert/pdf-split',form,onUpload),'qword-split.zip','PDF split into ZIP.');
+    });
+    rotBtn.addEventListener('click',()=>{
+      const f=fileInput.files?.[0];if(!f)return;
+      const form=new FormData();form.append('file',f);form.append('pages',pages.value.trim()||'all');form.append('degrees',deg.value);
+      convertWithProgress('psr',rotBtn,status,(onUpload)=>uploadWithProgress('/api/convert/pdf-rotate',form,onUpload),f.name.replace(/\.pdf$/i,'')+'-rotated.pdf','Pages rotated.');
+    });
   }
 }

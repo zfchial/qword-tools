@@ -9,6 +9,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "jszip": "^3.10.2",
     "next": "^16.4.0",
     "pdf-lib": "^1.17.1",
     "playwright-core": "^1.64.0",

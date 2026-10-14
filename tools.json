@@ -1040,5 +1040,185 @@
         "a": "It enlarges cleanly with high-quality smoothing and sharpening, but cannot recover detail that was never captured. It works best for small graphics, screenshots, and compressed photos."
       }
     ]
+  },
+  {
+    "slug": "image-compressor",
+    "name": "Image Compressor",
+    "category": "Media & Visuals",
+    "description": "Compress JPG, PNG, and WebP photos with adjustable quality and max size, entirely in your browser.",
+    "type": "image-compress",
+    "seoText": "Free online image compressor. Shrink JPG, PNG, and WebP file sizes with a quality slider and optional max dimensions. Everything runs locally in your browser; nothing is uploaded. See before/after sizes instantly.",
+    "faq": [
+      {
+        "q": "Are my photos uploaded?",
+        "a": "No. Compression runs entirely in your browser; files never leave your device."
+      },
+      {
+        "q": "Which output is smallest?",
+        "a": "Usually WebP at 70-80% quality. PNG is lossless and stays larger; it is best for graphics with sharp edges and transparency."
+      }
+    ]
+  },
+  {
+    "slug": "subnet-calculator",
+    "name": "Subnet / CIDR Calculator",
+    "category": "Developer Tools",
+    "description": "Enter an IP with CIDR prefix and get network, broadcast, usable range, wildcard mask, and binary breakdown.",
+    "type": "subnet-calc",
+    "seoText": "Free subnet calculator. Enter any IPv4 address with a CIDR prefix (e.g. 192.168.1.10/24) and instantly see the network address, broadcast address, subnet mask, wildcard mask, first and last usable host, number of hosts, IP class, and binary representation.",
+    "faq": [
+      {
+        "q": "What formats are accepted?",
+        "a": "Dotted IP with CIDR prefix like 10.0.0.5/22, or an IP plus a dotted subnet mask like 255.255.252.0."
+      },
+      {
+        "q": "How are /31 and /32 handled?",
+        "a": "Per RFC 3021, a /31 has 2 usable addresses (point-to-point, no broadcast), and a /32 is a single host with 0 usable addresses."
+      }
+    ]
+  },
+  {
+    "slug": "chmod-calculator",
+    "name": "Chmod Permission Calculator",
+    "category": "Developer Tools",
+    "description": "Toggle owner, group, and other read/write/execute flags and get the octal mode and symbolic string instantly.",
+    "type": "chmod-calc",
+    "seoText": "Free chmod calculator. Click read, write, and execute checkboxes for owner, group, and others to get the octal permission mode (e.g. 755) and symbolic string (e.g. rwxr-xr-x), or type an octal mode to decode it. Includes special bits: setuid, setgid, and sticky.",
+    "faq": [
+      {
+        "q": "What are the special modes?",
+        "a": "setuid (4), setgid (2), and sticky bit (1) form a leading fourth octal digit, e.g. 4755. Toggle them with the checkboxes."
+      },
+      {
+        "q": "What do common modes mean?",
+        "a": "755 (rwxr-xr-x) is typical for executables and public directories, 644 (rw-r--r--) for regular files, 600 (rw-------) for private files like SSH keys."
+      }
+    ]
+  },
+  {
+    "slug": "wifi-qr-generator",
+    "name": "WiFi QR Code Generator",
+    "category": "Media & Visuals",
+    "description": "Create a QR code for your WiFi network so guests join by scanning — supports WPA, WEP, open, and hidden networks.",
+    "type": "wifi-qr",
+    "seoText": "Free WiFi QR code generator. Enter your network name (SSID), security type, and password to create a scannable QR code. Guests join your WiFi by pointing their phone camera at it — no typing long passwords. Supports WPA/WPA2, WEP, open, and hidden networks.",
+    "faq": [
+      {
+        "q": "Is my WiFi password sent anywhere?",
+        "a": "The QR payload is built in your browser. The QR image itself is rendered by a third-party QR image API from that payload, so only share the result with people you trust with your network."
+      },
+      {
+        "q": "Does it work on iPhone and Android?",
+        "a": "Yes. Both phone cameras recognize WiFi QR codes natively and offer to join the network."
+      }
+    ]
+  },
+  {
+    "slug": "pdf-splitter-rotator",
+    "name": "PDF Splitter & Page Rotator",
+    "category": "Converters & Math",
+    "description": "Split a PDF into parts by page ranges (as ZIP) or rotate selected pages 90°, 180°, or 270°.",
+    "type": "pdf-split-rotate",
+    "seoText": "Free online PDF splitter and page rotator. Extract page ranges like 1-3, 5, 8-10 into a ZIP of separate PDFs, or rotate all or selected pages by 90, 180, or 270 degrees. Files are processed on the server and deleted immediately after.",
+    "faq": [
+      {
+        "q": "How do I write page ranges?",
+        "a": "Use comma-separated pages and ranges, e.g. 1-3, 5, 8-10. Each range becomes one PDF inside the downloaded ZIP."
+      },
+      {
+        "q": "Are encrypted PDFs supported?",
+        "a": "No. Password-protected PDFs must be unlocked first."
+      }
+    ]
+  },
+  {
+    "slug": "color-palette-extractor",
+    "name": "Image Color Palette Extractor",
+    "category": "Media & Visuals",
+    "description": "Upload any image and extract its dominant colors as HEX/RGB swatches with one-click copy.",
+    "type": "palette-extract",
+    "seoText": "Free image color palette extractor. Upload a photo or design and instantly get its 8 dominant colors as HEX and RGB swatches. Click any swatch to copy it. Everything runs in your browser; nothing is uploaded.",
+    "faq": [
+      {
+        "q": "Are my images uploaded?",
+        "a": "No. The image is analyzed locally with canvas; it never leaves your device."
+      },
+      {
+        "q": "How are dominant colors found?",
+        "a": "The image is downscaled and pixels are grouped into color buckets; the largest buckets become the palette."
+      }
+    ]
+  },
+  {
+    "slug": "exif-viewer-remover",
+    "name": "EXIF Metadata Viewer & Remover",
+    "category": "Security & Crypto",
+    "description": "See hidden camera, GPS, and device metadata in JPG/PNG photos, and download a cleaned copy with one click.",
+    "type": "exif-tool",
+    "seoText": "Free EXIF metadata viewer and remover. Drop a JPG or PNG photo to reveal hidden metadata: camera make and model, date taken, GPS location, orientation, and dimensions. Then download a cleaned copy with all metadata stripped — perfect before sharing photos publicly. Runs fully in your browser.",
+    "faq": [
+      {
+        "q": "Are my photos uploaded?",
+        "a": "No. Parsing and cleaning happen entirely in your browser."
+      },
+      {
+        "q": "Which formats are supported?",
+        "a": "JPEG (full EXIF incl. GPS) and PNG (text chunks). The cleaned copy keeps full image quality — only metadata is removed."
+      }
+    ]
+  },
+  {
+    "slug": "loan-calculator",
+    "name": "Loan / Mortgage Calculator",
+    "category": "Calculators",
+    "description": "Compute monthly payments, total interest, and total cost from loan amount, rate, and term.",
+    "type": "loan-calc",
+    "seoText": "Free loan and mortgage calculator. Enter the loan amount, annual interest rate, and term in years to get your monthly payment, total interest paid, and total cost, plus a yearly balance breakdown.",
+    "faq": [
+      {
+        "q": "Which formula is used?",
+        "a": "Standard amortizing loan: M = P * r(1+r)^n / ((1+r)^n - 1), with monthly rate r and n payments."
+      },
+      {
+        "q": "Does it include taxes or insurance?",
+        "a": "No. It covers principal and interest only; add taxes, insurance, and fees separately for a full mortgage picture."
+      }
+    ]
+  },
+  {
+    "slug": "bmi-calculator",
+    "name": "BMI Calculator",
+    "category": "Calculators",
+    "description": "Enter height and weight to get your Body Mass Index, category, and healthy weight range.",
+    "type": "bmi-calc",
+    "seoText": "Free BMI calculator. Enter your height and weight to get your Body Mass Index instantly, with the WHO category (underweight, healthy, overweight, obese) and your healthy weight range.",
+    "faq": [
+      {
+        "q": "How is BMI calculated?",
+        "a": "BMI = weight (kg) / height (m) squared."
+      },
+      {
+        "q": "Is BMI a full health picture?",
+        "a": "No. BMI doesn't distinguish muscle from fat. Athletes and muscular people may read high while being healthy."
+      }
+    ]
+  },
+  {
+    "slug": "discount-calculator",
+    "name": "Discount & Sale Price Calculator",
+    "category": "Calculators",
+    "description": "Compute sale prices, savings, and after-tax totals from original price, discount, and tax.",
+    "type": "discount-calc",
+    "seoText": "Free discount calculator. Enter the original price and discount percent to get the sale price and how much you save. Optionally add tax to see the final checkout total.",
+    "faq": [
+      {
+        "q": "How is tax applied?",
+        "a": "Tax is applied to the discounted price: total = (price - discount) * (1 + tax/100)."
+      },
+      {
+        "q": "Can I stack two discounts?",
+        "a": "Yes — enter the second discount and it applies to the already-discounted price, like real stores do."
+      }
+    ]
   }
 ]
