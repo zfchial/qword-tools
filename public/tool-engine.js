@@ -1960,9 +1960,9 @@ function setupTool(type) {
     txtIn.addEventListener('keydown',(e)=>{if(e.key==='Enter'){e.preventDefault();addBtn.click();}});
     clearBtn.addEventListener('click',()=>{chat.querySelectorAll('.wa-b').forEach((b)=>b.remove());});
     dlBtn.addEventListener('click',()=>exportPhone('waPhone',dlStatus,'fake-whatsapp-chat.png'));
-    addMsg('Hey! Are we still on for tonight? 🎬','in','09:12');
-    addMsg('Yes! Pick you up at 7 🕖','out','09:15');
-    addMsg('Perfect, see you then!!','in','09:16');
+    addMsg('Hey! Are we still on for tonight?','in','09:12');
+    addMsg('Yes! Pick you up at 7','out','09:15');
+    addMsg('Perfect, see you then!','in','09:16');
   } else if (type === 'fake-ig') {
     const user=document.getElementById('igUser'),time=document.getElementById('igTime'),likes=document.getElementById('igLikes');
     const avaIn=document.getElementById('igAvatar'),photoIn=document.getElementById('igPhoto'),verified=document.getElementById('igVerified');
@@ -2002,8 +2002,8 @@ function setupTool(type) {
     };
     addC.addEventListener('click',()=>{addComment(cUser.value,cText.value);cText.value='';cText.focus();});
     dlBtn.addEventListener('click',()=>exportPhone('igPhone',dlStatus,'fake-instagram-post.png'));
-    addComment('mike.jpg','This is unreal 😍');
-    addComment('travel.ana','Take me there!! ✈️');
+    addComment('mike.jpg','This is unreal!');
+    addComment('travel.ana','Take me there!');
   } else if (type === 'fake-fb') {
     const name=document.getElementById('fbName'),time=document.getElementById('fbTime'),text=document.getElementById('fbText');
     const bg=document.getElementById('fbBg'),photoIn=document.getElementById('fbPhoto'),avaIn=document.getElementById('fbAvatar');
@@ -2099,7 +2099,7 @@ function setupTool(type) {
       strip:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#ffffff',capColor:'#111111',capFont:'bold 30px Arial',decor:[]},
       noir:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#141414',capColor:'#f5f5f5',capFont:'bold 30px Georgia',decor:[]},
       cream:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#f5efe0',capColor:'#7c5a3a',capFont:'italic bold 30px Georgia',decor:[]},
-      birthday:{w:600,h:1800,slots:[[20,90,560,380],[20,490,560,380],[20,890,560,380],[20,1290,560,380]],capY:1735,bg1:'#ff9a9e',bg2:'#fecfef',capColor:'#a4133c',capFont:'bold 30px Arial',decor:[{e:'🎉',x:70,y:70,s:44},{e:'🎂',x:300,y:66,s:44},{e:'🎈',x:480,y:70,s:44}]},
+      birthday:{w:600,h:1800,slots:[[20,90,560,380],[20,490,560,380],[20,890,560,380],[20,1290,560,380]],capY:1735,bg1:'#ff9a9e',bg2:'#fecfef',capColor:'#a4133c',capFont:'bold 30px Arial',confetti:true,decor:[]},
       neon:{w:600,h:1800,slots:[[20,20,560,400],[20,440,560,400],[20,860,560,400],[20,1280,560,400]],capY:1720,bg:'#0a0a14',capColor:'#ff71ce',capFont:'bold 30px Arial',glow:'#01cdfe',decor:[]},
       grid:{w:632,h:700,slots:[[16,16,292,292],[324,16,292,292],[16,324,292,292],[324,324,292,292]],capY:668,bg:'#ffffff',capColor:'#111111',capFont:'bold 26px Arial',decor:[]},
       trio:{w:600,h:1260,slots:[[20,20,560,360],[20,400,560,360],[20,780,560,360]],capY:1195,bg:'#ffffff',capColor:'#111111',capFont:'bold 28px Arial',decor:[]},
@@ -2122,6 +2122,16 @@ function setupTool(type) {
       else ctx.fillStyle=t.bg;
       ctx.fillRect(0,0,t.w,t.h);
       (t.decor||[]).forEach((d)=>{ctx.font=d.s+'px serif';ctx.textAlign='center';ctx.fillText(d.e,d.x,d.y);});
+      if(t.confetti){
+        const cols=['#a4133c','#ffffff','#ffb703','#3a86ff','#8338ec'];
+        for(let i=0;i<70;i++){
+          const x=(i*97+31)%t.w;
+          const top=(i*57+13)%110,bot=t.h-((i*61+17)%110);
+          ctx.fillStyle=cols[i%cols.length];
+          ctx.beginPath();ctx.arc(x,i%2?top:bot,2+(i%4),0,7);ctx.fill();
+          if(i%3===0){ctx.save();ctx.translate((i*131+7)%t.w,i%2?bot:top);ctx.rotate(i);ctx.fillRect(-4,-2,8,4);ctx.restore();}
+        }
+      }
       t.slots.forEach((s,i)=>{
         const [x,y,w,h]=s;
         ctx.fillStyle=t.bg==='#ffffff'?'#e8e8e8':'rgba(255,255,255,.12)';
@@ -2152,7 +2162,7 @@ function setupTool(type) {
       ctx.translate(c.width,0);ctx.scale(-1,1);
       ctx.drawImage(video,0,0);
       shots.push(c);
-      status.textContent='Photo '+shots.length+' captured ✦';
+      status.textContent='Photo '+shots.length+' captured';
       render();
     };
     const countdown=(sec)=>new Promise((resolve)=>{
@@ -2170,7 +2180,7 @@ function setupTool(type) {
         if(stream)stream.getTracks().forEach((t)=>t.stop());
         stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280}},audio:false});
         video.srcObject=stream;
-        status.textContent='Camera on — pose! 📸';
+        status.textContent='Camera on — smile!';
         snapBtn.disabled=false;autoBtn.disabled=false;
       }catch(e){status.textContent='Camera blocked or unavailable. You can still upload photos below.';}
     });
@@ -2190,7 +2200,7 @@ function setupTool(type) {
         await countdown(3);snap();
         await new Promise((r)=>setTimeout(r,600));
       }
-      status.textContent='All done! Download your strip below 🎞️';
+      status.textContent='All done! Download your strip below';
       busy=false;snapBtn.disabled=false;autoBtn.disabled=false;
     });
     resetBtn.addEventListener('click',()=>{shots.length=0;status.textContent='Cleared.';render();});
@@ -2222,7 +2232,7 @@ function setupTool(type) {
         a.href=URL.createObjectURL(blob);
         a.download='qword-photobooth-'+tplSel.value+'.png';
         a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-        status.textContent='Downloaded! Enjoy 📸';
+        status.textContent='Downloaded! Enjoy';
       },'image/png');
     });
     render();
