@@ -1298,9 +1298,64 @@ function setupTool(type) {
     const before=document.getElementById('upBefore'),after=document.getElementById('upAfter');
     const beforeSize=document.getElementById('upBeforeSize'),afterSize=document.getElementById('upAfterSize');
     let bitmap=null,lastFileName='upscaled';
-    const MAX_SRC=15*1024*1024,MAX_OUT=8192;
+    const MAX_SRC=15*1024*1024,MAX_OUT=8192,PREVIEW_MAX=880;
+    let previewSeq=0,worker=null,workerDead=false,debounce=null;
     sharp.addEventListener('input',()=>{sharpVal.textContent=sharp.value;});
     quality.addEventListener('input',()=>{qualityVal.textContent=quality.value;});
+    const nextFrame=()=>new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+    function getWorker(){
+      if(worker||workerDead)return worker;
+      try{worker=new Worker('/upscale-worker.js');worker.onerror=()=>{workerDead=true;worker=null;};}
+      catch(e){workerDead=true;worker=null;}
+      return worker;
+    }
+    function syncSharpen(img,strength){
+      const d=img.data,w=img.width,h=img.height;
+      const copy=new Uint8ClampedArray(d);
+      const str=0.35+(Math.max(0,Math.min(100,Number(strength)||0))/100)*0.85;
+      for(let y=0;y<h;y++){
+        const yw=y*w,upRow=y>0?yw-w:yw,dnRow=y<h-1?yw+w:yw;
+        for(let x=0;x<w;x++){
+          const xl=x>0?x-1:x,xr=x<w-1?x+1:x;
+          const i=(yw+x)*4,l=(yw+xl)*4,r=(yw+xr)*4,u=(upRow+x)*4,dn=(dnRow+x)*4;
+          for(let c=0;c<3;c++){
+            const blur=(copy[l+c]+copy[r+c]+copy[u+c]+copy[dn+c])*0.25;
+            d[i+c]=copy[i+c]+(copy[i+c]-blur)*str;
+          }
+        }
+      }
+    }
+    let reqId=0;
+    const pending=new Map();
+    function sharpenCanvas(canvas,strength){
+      const amt=Math.max(0,Math.min(100,Number(strength)||0));
+      if(!amt)return Promise.resolve();
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      const w=getWorker();
+      if(!w){const img=ctx.getImageData(0,0,canvas.width,canvas.height);syncSharpen(img,amt);ctx.putImageData(img,0,0);return Promise.resolve();}
+      return new Promise((resolve)=>{
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+        const id=++reqId;
+        const done=(ok)=>{
+          pending.delete(id);
+          resolve();
+        };
+        pending.set(id,{done,canvas});
+        const onMsg=(ev)=>{
+          const m=ev.data||{};
+          if(m.id!==id)return;
+          w.removeEventListener('message',onMsg);
+          if(!m.error&&m.buffer){
+            try{ctx.putImageData(new ImageData(new Uint8ClampedArray(m.buffer),canvas.width,canvas.height),0,0);}catch(e){/* ignore */}
+          }
+          done(true);
+        };
+        w.addEventListener('message',onMsg);
+        try{w.postMessage({id,width:canvas.width,height:canvas.height,buffer:img.data.buffer,strength:amt},[img.data.buffer]);}
+        catch(e){w.removeEventListener('message',onMsg);pending.delete(id);try{syncSharpen(img,amt);ctx.putImageData(img,0,0);}catch(_){}resolve();}
+        setTimeout(()=>{if(pending.has(id)){w.removeEventListener('message',onMsg);pending.delete(id);resolve();}},30000);
+      });
+    }
     const drawBefore=()=>{
       if(!bitmap)return;
       const maxW=480,s=Math.min(1,maxW/bitmap.width);
@@ -1312,46 +1367,38 @@ function setupTool(type) {
       ctx.drawImage(bitmap,0,0,before.width,before.height);
       beforeSize.textContent=bitmap.width+' × '+bitmap.height+' px';
     };
-    const upscale=(factor,sharpenPct)=>{
-      const w=bitmap.width,h=bitmap.height;
-      const ow=Math.min(MAX_OUT,Math.round(w*factor)),oh=Math.min(MAX_OUT,Math.round(h*factor));
-      const step1=document.createElement('canvas');step1.width=ow;step1.height=oh;
-      const c1=step1.getContext('2d',{willReadFrequently:true});
-      c1.imageSmoothingEnabled=true;c1.imageSmoothingQuality='high';
-      c1.clearRect(0,0,ow,oh);c1.drawImage(bitmap,0,0,ow,oh);
-      const amt=Math.max(0,Math.min(100,Number(sharpenPct)||0))/100;
-      if(amt>0){
-        const img=c1.getImageData(0,0,ow,oh),d=img.data,copy=new Uint8ClampedArray(d);
-        const str=0.35+(amt*0.85);
-        const idx=(x,y)=>((Math.min(oh-1,Math.max(0,y))*ow)+Math.min(ow-1,Math.max(0,x)))*4;
-        for(let y=0;y<oh;y++){
-          for(let x=0;x<ow;x++){
-            const i=(y*ow+x)*4;
-            for(let c=0;c<3;c++){
-              const blur=(copy[idx(x-1,y)+c]+copy[idx(x+1,y)+c]+copy[idx(x,y-1)+c]+copy[idx(x,y+1)+c])/4;
-              d[i+c]=copy[i+c]+(copy[i+c]-blur)*str;
-            }
-          }
-        }
-        c1.putImageData(img,0,0);
-      }
-      after.width=ow;after.height=oh;
-      const previewMax=480,ps=Math.min(1,previewMax/ow);
-      after.style.width=Math.max(1,Math.round(ow*ps))+'px';
-      const actx=after.getContext('2d');
-      actx.imageSmoothingEnabled=true;actx.imageSmoothingQuality='high';
-      actx.clearRect(0,0,ow,oh);actx.drawImage(step1,0,0);
-      afterSize.textContent=ow+' × '+oh+' px ('+factor+'x)';
-      return step1;
+    const outSize=(factor)=>{
+      const ow=Math.min(MAX_OUT,Math.round(bitmap.width*factor)),oh=Math.min(MAX_OUT,Math.round(bitmap.height*factor));
+      return [ow,oh];
     };
-    let preview=null;
-    const refreshPreview=()=>{
+    const refreshPreview=async()=>{
       if(!bitmap){button.disabled=true;return;}
-      try{preview=upscale(Number(scaleSel.value)||2,Number(sharp.value));button.disabled=false;}
-      catch(e){status.textContent='Upscale failed: '+(e.message||e);button.disabled=true;}
+      const my=++previewSeq;
+      button.disabled=true;
+      status.textContent='Rendering preview…';
+      await nextFrame();
+      if(my!==previewSeq)return;
+      try{
+        const factor=Number(scaleSel.value)||2;
+        const [ow,oh]=outSize(factor);
+        const ps=Math.min(1,PREVIEW_MAX/Math.max(ow,oh));
+        const pw=Math.max(1,Math.round(ow*ps)),ph=Math.max(1,Math.round(oh*ps));
+        after.width=pw;after.height=ph;
+        after.style.width='100%';
+        const actx=after.getContext('2d');
+        actx.imageSmoothingEnabled=true;actx.imageSmoothingQuality='high';
+        actx.clearRect(0,0,pw,ph);actx.drawImage(bitmap,0,0,pw,ph);
+        const sharpAmt=Number(sharp.value)||0;
+        if(sharpAmt>0&&pw*ph<=1200000){await sharpenCanvas(after,sharpAmt);}
+        if(my!==previewSeq)return;
+        afterSize.textContent=ow+' × '+oh+' px ('+factor+'x) — preview '+pw+' × '+ph;
+        status.textContent='Ready: '+bitmap.width+' × '+bitmap.height+' → '+ow+' × '+oh+'. Full quality applied on download.';
+        button.disabled=false;
+      }catch(e){if(my===previewSeq){status.textContent='Preview failed: '+(e.message||e);button.disabled=false;}};
     };
+    const refreshDebounced=()=>{clearTimeout(debounce);debounce=setTimeout(refreshPreview,160);};
     fileInput.addEventListener('change',async()=>{
-      button.disabled=true;preview=null;
+      button.disabled=true;previewSeq++;
       if(bitmap){bitmap.close?.();bitmap=null;}
       after.width=1;after.height=1;afterSize.textContent='';beforeSize.textContent='';
       const file=fileInput.files?.[0];if(!file)return;
@@ -1361,28 +1408,44 @@ function setupTool(type) {
       try{
         bitmap=await createImageBitmap(file);
         if(!bitmap.width||!bitmap.height)throw Error('unsupported image');
+        const px=bitmap.width*(Number(scaleSel.value)||2),py=bitmap.height*(Number(scaleSel.value)||2);
+        if(px>MAX_OUT||py>MAX_OUT)status.textContent='Note: output will be capped at '+MAX_OUT+'px.';
         drawBefore();refreshPreview();
-        status.textContent='Ready: '+bitmap.width+' × '+bitmap.height+' → '+after.width+' × '+after.height+'.';
+        status.textContent='Ready: '+bitmap.width+' × '+bitmap.height+'. Rendering preview…';
       }catch(e){status.textContent='This image format is not supported by this browser.';}
     });
-    scaleSel.addEventListener('change',()=>{if(bitmap){refreshPreview();status.textContent='Preview: '+bitmap.width+' × '+bitmap.height+' → '+after.width+' × '+after.height+'.';}});
-    sharp.addEventListener('change',()=>{if(bitmap)refreshPreview();});
-    button.addEventListener('click',()=>{
+    scaleSel.addEventListener('change',refreshPreview);
+    sharp.addEventListener('change',refreshDebounced);
+    button.addEventListener('click',async()=>{
       if(!bitmap)return;
-      button.disabled=true;status.textContent='Preparing download…';
+      const my=++previewSeq;
+      button.disabled=true;status.textContent='Upscaling full resolution… (UI stays responsive)';
+      await nextFrame();await nextFrame();
       try{
-        const step=preview||upscale(Number(scaleSel.value)||2,Number(sharp.value));
+        const factor=Number(scaleSel.value)||2;
+        const [ow,oh]=outSize(factor);
+        const step=document.createElement('canvas');step.width=ow;step.height=oh;
+        const c1=step.getContext('2d',{willReadFrequently:true});
+        c1.imageSmoothingEnabled=true;c1.imageSmoothingQuality='high';
+        c1.drawImage(bitmap,0,0,ow,oh);
+        if(my!==previewSeq)return;
+        status.textContent='Enhancing '+ow+' × '+oh+'…';
+        await nextFrame();
+        await sharpenCanvas(step,Number(sharp.value)||0);
+        if(my!==previewSeq)return;
         const mime=formatSel.value;
         const q=Math.max(10,Math.min(100,Number(quality.value)||90))/100;
+        status.textContent='Encoding download…';
+        await nextFrame();
         step.toBlob(blob=>{
+          if(my!==previewSeq)return;
           button.disabled=false;
           if(!blob){status.textContent='Export failed: unsupported output format.';return;}
           const a=document.createElement('a');
           a.href=URL.createObjectURL(blob);
-          const scale=Number(scaleSel.value)||2;
-          a.download=lastFileName+'-'+scale+'x'+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');
+          a.download=lastFileName+'-'+factor+'x'+(mime==='image/png'?'.png':mime==='image/webp'?'.webp':'.jpg');
           a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-          status.textContent='Upscaled '+after.width+' × '+after.height+' ('+fmtSize(blob.size)+'). Downloaded.';
+          status.textContent='Upscaled '+ow+' × '+oh+' ('+fmtSize(blob.size)+'). Downloaded.';
         },mime,...(mime==='image/png'?[]:[q]));
       }catch(e){button.disabled=false;status.textContent='Upscale failed: '+(e.message||e);}
     });
