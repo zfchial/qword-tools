@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertPublicHttpUrl } from "@/lib/safeUrl";
+import { rateLimited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -11,18 +13,23 @@ export async function POST(request: NextRequest) {
   if (origin && origin !== `https://${host}` && origin !== `http://${host}`) return NextResponse.json({ error: "Origin not allowed." }, { status: 403 });
   let body: { url?: string };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Send a JSON body with a url field." }, { status: 400 }); }
-  let target = String(body.url || "").trim().slice(0, 2048);
-  if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
-  let parsed: URL;
+  let target: string;
   try {
-    parsed = new URL(target);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("bad protocol");
-    if (!parsed.hostname || parsed.username || parsed.password) throw new Error("bad host");
-  } catch { return NextResponse.json({ error: "Enter a valid public http(s) URL." }, { status: 400 }); }
+    target = await assertPublicHttpUrl(body.url || "");
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message || "Enter a valid public http(s) URL." }, { status: 400 });
+  }
   const chain: { url: string; status: number; headers: Record<string, string> }[] = [];
+  if (rateLimited(request, "headers", 30, 60 * 1000)) return NextResponse.json({ error: "Too many checks. Slow down." }, { status: 429 });
   try {
-    let current = parsed.toString();
+    let current = target;
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      // Validasi ulang tiap hop — redirect ke host internal dilarang.
+      try {
+        current = await assertPublicHttpUrl(current);
+      } catch {
+        return NextResponse.json({ error: "That URL redirects somewhere not allowed.", url: target, chain }, { status: 400 });
+      }
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), 12000);
       let response: Response;
@@ -43,7 +50,7 @@ export async function POST(request: NextRequest) {
       }
       break;
     }
-    return NextResponse.json({ url: parsed.toString(), chain }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ url: target, chain }, { headers: { "Cache-Control": "no-store" } });
   } catch {
     return NextResponse.json({ error: "Could not fetch headers. The site may be down or blocking requests." }, { status: 502 });
   }

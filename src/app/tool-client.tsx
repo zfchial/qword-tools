@@ -10,13 +10,22 @@ function initializeTool(type: string) {
 }
 
 const SHOT_TYPES = new Set(["fake-wa", "fake-ig", "fake-fb", "fake-threads", "fake-x"]);
+const QR_TYPES = new Set(["wifi-qr"]);
 
 export default function ToolClient({ tool, markup, related }: { tool: Tool; markup: string; related: Tool[] }) {
   useEffect(() => { initializeTool(tool.type); }, [tool.type]);
   return <>
     <Script src="/tool-engine.js?v=13" strategy="afterInteractive" onReady={() => initializeTool(tool.type)} />
     {SHOT_TYPES.has(tool.type) && (
-      <Script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js" strategy="afterInteractive" />
+      <script
+        src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"
+        integrity="sha384-lELZMVO0WZSKHeOrm8rKLCq9ZXjY1+2I9uL/QyDxIXSd83b3/z5xBXb1uDoFi3P/"
+        crossOrigin="anonymous"
+        async
+      />
+    )}
+    {QR_TYPES.has(tool.type) && (
+      <Script src="/qrcode-gen.js?v=204" strategy="afterInteractive" />
     )}
     <nav aria-label="Breadcrumb" className="breadcrumbs mb-5 text-xs"><Link href="/">Home</Link><span aria-hidden="true"> / </span><span>{tool.category}</span><span aria-hidden="true"> / </span><span>{tool.name}</span></nav>
     <header className="tool-heading mb-6"><h1 className="text-3xl font-bold tracking-tight md:text-4xl">{tool.name}</h1><p className="tool-description mt-2 max-w-3xl">{tool.description}</p></header>

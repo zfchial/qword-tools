@@ -1105,7 +1105,7 @@
     "faq": [
       {
         "q": "Is my WiFi password sent anywhere?",
-        "a": "The QR payload is built in your browser. The QR image itself is rendered by a third-party QR image API from that payload, so only share the result with people you trust with your network."
+        "a": "No. The QR code is generated 100% offline in your browser with a built-in library — your password never leaves the device."
       },
       {
         "q": "Does it work on iPhone and Android?",

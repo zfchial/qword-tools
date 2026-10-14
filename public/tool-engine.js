@@ -1645,27 +1645,24 @@ function setupTool(type) {
     };
     gen.addEventListener('click',()=>{
       const p=build();if(!p)return;
-      img.src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data='+encodeURIComponent(p);
-      payloadEl.textContent=p;
-      status.textContent='Scan with a phone camera to join "'+ssid.value.trim()+'".';
-      dl.disabled=false;
+      if(typeof window.qrcode!=='function'){status.textContent='QR library still loading. Wait a moment and retry.';return;}
+      try{
+        const qr=window.qrcode(0,'M');qr.addData(p);qr.make();
+        img.src=qr.createDataURL(8,4);
+        payloadEl.textContent=p;
+        status.textContent='QR ready — generated 100% offline, password never leaves this device.';
+        dl.disabled=false;
+      }catch(e){status.textContent='Payload too long for a QR code. Shorten SSID/password.';}
     });
     sec.addEventListener('change',()=>{pass.disabled=sec.value==='nopass';});
     pass.disabled=sec.value==='nopass';
-    dl.addEventListener('click',async()=>{
+    dl.addEventListener('click',()=>{
       if(!img.src)return;
-      dl.disabled=true;
-      try{
-        const r=await fetch(img.src);
-        if(!r.ok)throw new Error('fetch');
-        const blob=await r.blob();
-        const a=document.createElement('a');
-        a.href=URL.createObjectURL(blob);
-        a.download='wifi-'+(ssid.value.trim()||'network')+'.png';
-        a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-        status.textContent='QR downloaded.';
-      }catch(e){window.open(img.src,'_blank');status.textContent='Opened QR in a new tab (download blocked).';}
-      dl.disabled=false;
+      const a=document.createElement('a');
+      a.href=img.src;
+      a.download='wifi-'+(ssid.value.trim()||'network')+'.gif';
+      a.click();
+      status.textContent='QR downloaded.';
     });
   } else if (type === 'palette-extract') {
     const fileInput=document.getElementById('palFile'),countSel=document.getElementById('palCount');

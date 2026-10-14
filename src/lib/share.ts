@@ -90,6 +90,20 @@ export function shellPage(inner: string, title: string, status = 200) {
 }
 
 /**
+ * Tipe yang bisa mengeksekusi script/active content bila dibuka inline
+ * di origin kita (XSS via file upload). Selalu paksa download.
+ * Catatan: SVG di dalam <img> preview tetap aman (browser tidak
+ * mengeksekusi script dalam konteks image).
+ */
+const FORCE_DOWNLOAD_MIME = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml",
+  "text/xml",
+  "application/xml",
+]);
+
+/**
  * Stream a file from disk with HTTP Range support (penting agar video/audio
  * bisa di-seek di browser) tanpa memuat seluruh file ke memori.
  */
@@ -100,12 +114,14 @@ export async function sendFile(
   const st = await stat(absPath).catch(() => undefined);
   if (!st || !st.isFile()) return null;
   const total = st.size;
-  const disp = opts.download ? "attachment" : "inline";
+  const risky = FORCE_DOWNLOAD_MIME.has(opts.mime.toLowerCase());
+  const disp = opts.download || risky ? "attachment" : "inline";
   const baseHeaders: Record<string, string> = {
     "Content-Type": opts.mime,
     "Content-Disposition": `${disp}; filename="${opts.filename}"`,
     "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600",
+    "X-Content-Type-Options": "nosniff",
   };
   const range = opts.rangeHeader || "";
   const m = /^bytes=(\d*)-(\d*)$/.exec(range.trim());

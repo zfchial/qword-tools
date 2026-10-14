@@ -1,5 +1,7 @@
 import { connect } from "node:tls";
 import { NextRequest, NextResponse } from "next/server";
+import { assertPublicHttpUrl } from "@/lib/safeUrl";
+import { rateLimited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -33,6 +35,12 @@ export async function POST(request: NextRequest) {
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Send a JSON body with a host field." }, { status: 400 }); }
   const target = cleanHostname(String(body.host || ""));
   if (!target) return NextResponse.json({ error: "Enter a valid hostname, for example example.com." }, { status: 400 });
+  try {
+    await assertPublicHttpUrl("https://" + target);
+  } catch {
+    return NextResponse.json({ error: "That host is not allowed." }, { status: 400 });
+  }
+  if (rateLimited(request, "ssl", 30, 60 * 1000)) return NextResponse.json({ error: "Too many checks. Slow down." }, { status: 429 });
   try {
     const { cert, authorized, authError } = await checkTls(target, 12000);
     const subject = cert.subject as Record<string, string> | undefined;

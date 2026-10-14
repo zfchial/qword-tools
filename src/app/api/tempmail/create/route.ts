@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/ratelimit";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 function rand(n: number) {
@@ -10,6 +11,7 @@ function rand(n: number) {
   return s;
 }
 export async function POST(request: NextRequest) {
+  if (rateLimited(request, "tempmail", 15, 60 * 1000)) return NextResponse.json({ error: "Too many mailboxes. Slow down." }, { status: 429 });
   try {
     const body = await request.json().catch(() => ({}));
     const domRes = await fetch("https://api.mail.tm/domains", { cache: "no-store" });

@@ -1,5 +1,6 @@
 import { PDFDocument, degrees } from "pdf-lib";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
   const host = request.headers.get("host");
   if (origin && origin !== `https://${host}` && origin !== `http://${host}`) return NextResponse.json({ error: "Origin not allowed." }, { status: 403 });
   if (active) return NextResponse.json({ error: "A conversion is already running. Try again shortly." }, { status: 429 });
+  if (rateLimited(request, "pdf", 20, 60 * 1000)) return NextResponse.json({ error: "Too many conversions. Slow down." }, { status: 429 });
   const requestLength = Number(request.headers.get("content-length") || 0);
   if (requestLength > 60 * 1024 * 1024) return NextResponse.json({ error: "Upload exceeds the 60 MB request limit." }, { status: 413 });
   let form: FormData;

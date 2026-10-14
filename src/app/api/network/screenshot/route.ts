@@ -3,6 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import { chromium } from "playwright-core";
 import { NextRequest, NextResponse } from "next/server";
+import { assertPublicHttpUrl } from "@/lib/safeUrl";
+import { rateLimited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -19,16 +21,16 @@ export async function POST(request: NextRequest) {
   const origin = request.headers.get("origin");
   const host = request.headers.get("host");
   if (origin && origin !== `https://${host}` && origin !== `http://${host}`) return NextResponse.json({ error: "Origin not allowed." }, { status: 403 });
+  if (rateLimited(request, "shot", 10, 60 * 1000)) return NextResponse.json({ error: "Too many screenshots. Slow down." }, { status: 429 });
   if (active) return NextResponse.json({ error: "A screenshot is already running. Try again shortly." }, { status: 429 });
   let body: { url?: string; device?: string; fullPage?: boolean };
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Send a JSON body with a url field." }, { status: 400 }); }
-  let target = String(body.url || "").trim().slice(0, 2048);
-  if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
+  let target: string;
   try {
-    const parsed = new URL(target);
-    if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || !parsed.hostname || parsed.username || parsed.password) throw new Error("bad url");
-    target = parsed.toString();
-  } catch { return NextResponse.json({ error: "Enter a valid public http(s) URL." }, { status: 400 }); }
+    target = await assertPublicHttpUrl(body.url || "");
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message || "Enter a valid public http(s) URL." }, { status: 400 });
+  }
   const viewport = WIDTHS[String(body.device || "desktop")] || WIDTHS.desktop;
   const fullPage = body.fullPage !== false;
   active = true;
@@ -43,6 +45,13 @@ export async function POST(request: NextRequest) {
       await page.goto(target, { timeout: 30000, waitUntil: "networkidle" });
     } catch {
       await page.goto(target, { timeout: 30000, waitUntil: "domcontentloaded" });
+    }
+    // Situs bisa redirect ke host internal — validasi URL akhir juga.
+    try {
+      await assertPublicHttpUrl(page.url());
+    } catch {
+      await page.close();
+      return NextResponse.json({ error: "That page redirects somewhere not allowed." }, { status: 400 });
     }
     await page.screenshot({ path: shotPath, fullPage, timeout: 20000 });
     await page.close();

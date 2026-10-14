@@ -2,6 +2,7 @@ import { mkdir, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -43,6 +44,7 @@ export async function POST(request: NextRequest) {
   }
   const size = Number(body.size || 0);
   if (!size || size < 1) return NextResponse.json({ error: "File is empty." }, { status: 400 });
+  if (rateLimited(request, "share-init", 30, 3600 * 1000)) return NextResponse.json({ error: "Too many uploads. Try again later." }, { status: 429 });
   if (size > MAX_FILE) return NextResponse.json({ error: "File limit is 1 GB." }, { status: 413 });
   const rawName = String(body.name || "file");
   const name = path.basename(rawName).replace(/[\r\n"\\]/g, "_").slice(0, 120) || "file";

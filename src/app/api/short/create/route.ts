@@ -2,6 +2,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { randomBytes } from "node:crypto";
 import path from "node:path";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimited } from "@/lib/ratelimit";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 const dir = path.join(process.cwd(), "data");
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Send a JSON body with a url field." }, { status: 400 });
   }
+  if (rateLimited(request, "short", 20, 60 * 1000)) return NextResponse.json({ error: "Too many links. Slow down." }, { status: 429 });
   let target = String(body.url || "").trim().slice(0, 2048);
   if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
   try {
